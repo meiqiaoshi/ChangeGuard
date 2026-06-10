@@ -1,0 +1,48 @@
+version: "1.0"
+assets:
+  - name: sales
+    type: table
+    columns:
+      - order_id
+      - customer_id
+      - amount
+      - order_date
+      - status
+
+  - name: mart_daily_revenue
+    type: table
+    depends_on:
+      - table: sales
+        columns:
+          - amount
+          - order_date
+
+  - name: customer_orders_summary
+    type: table
+    depends_on:
+      - table: sales
+        columns:
+          - customer_id
+          - order_id
+
+  - name: sales_dashboard
+    type: dashboard
+    depends_on:
+      - table: mart_daily_revenue
+        columns:
+          - total_amount
+
+column_lineage:
+  - source_table: sales
+    source_column: amount
+    downstream:
+      - asset: mart_daily_revenue
+        column: total_amount
+      - asset: sales_dashboard
+        column: revenue_kpi
+
+  - source_table: sales
+    source_column: customer_id
+    downstream:
+      - asset: customer_orders_summary
+        column: customer_id

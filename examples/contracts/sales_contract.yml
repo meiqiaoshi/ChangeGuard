@@ -1,0 +1,39 @@
+table: sales
+version: "1.0"
+owner: analytics-team
+description: Core sales fact table contract
+
+columns:
+  order_id:
+    type: string
+    required: true
+    unique: true
+    primary_key: true
+
+  customer_id:
+    type: string
+    required: true
+
+  amount:
+    type: float
+    required: true
+    min_value: 0
+
+  order_date:
+    type: date
+    required: true
+
+  status:
+    type: string
+    required: false
+
+rules:
+  - name: amount_non_negative
+    column: amount
+    check: min_value
+    value: 0
+
+  - name: sales_amount_positive
+    column: amount
+    check: min_value
+    value: 0.01

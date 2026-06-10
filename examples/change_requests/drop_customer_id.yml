@@ -1,0 +1,4 @@
+change_type: drop_column
+table: sales
+column: customer_id
+description: Attempt to drop customer_id — expected to BLOCK due to contract and lineage

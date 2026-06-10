@@ -1,0 +1,6 @@
+change_type: add_column
+table: sales
+column: discount
+type: float
+nullable: true
+description: Add promotional discount column for pricing experiments

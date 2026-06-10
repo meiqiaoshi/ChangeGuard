@@ -1,0 +1,20 @@
+version: "1.0"
+rules:
+  - name: sales_amount_positive
+    table: sales
+    column: amount
+    check: min_value
+    value: 0.01
+    severity: error
+
+  - name: order_id_not_null
+    table: sales
+    column: order_id
+    check: not_null
+    severity: error
+
+  - name: customer_id_not_null
+    table: sales
+    column: customer_id
+    check: not_null
+    severity: error

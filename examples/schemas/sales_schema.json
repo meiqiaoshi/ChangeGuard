@@ -1,0 +1,31 @@
+{
+  "table": "sales",
+  "version": "1.0",
+  "columns": [
+    {
+      "name": "order_id",
+      "type": "string",
+      "nullable": false
+    },
+    {
+      "name": "customer_id",
+      "type": "string",
+      "nullable": false
+    },
+    {
+      "name": "amount",
+      "type": "float",
+      "nullable": false
+    },
+    {
+      "name": "order_date",
+      "type": "date",
+      "nullable": false
+    },
+    {
+      "name": "status",
+      "type": "string",
+      "nullable": true
+    }
+  ]
+}
