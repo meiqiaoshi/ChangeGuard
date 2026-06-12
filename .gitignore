@@ -1,9 +1,14 @@
-# Python
+# Python bytecode
 __pycache__/
 *.py[cod]
+*$py.class
 *.egg-info/
 dist/
 build/
+
+# Type and lint caches
+.mypy_cache/
+.ruff_cache/
 
 # Virtual environments
 .venv/
