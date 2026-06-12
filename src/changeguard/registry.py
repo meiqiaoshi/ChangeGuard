@@ -14,6 +14,10 @@ class DuplicateTableError(ValueError):
     """Raised when registering a table name that already exists."""
 
 
+class TableNotFoundError(LookupError):
+    """Raised when a registered table cannot be found."""
+
+
 class Registry(BaseModel):
     """Collection of registered table metadata."""
 
@@ -107,3 +111,12 @@ def register_table(
     registry.tables.append(table)
     save_registry(project_base, registry)
     return table, warnings
+
+
+def get_table(base: Path | None, name: str) -> TableMetadata:
+    """Return metadata for a registered table."""
+    registry = load_registry(base)
+    for table in registry.tables:
+        if table.name == name:
+            return table
+    raise TableNotFoundError(f"Table not found: {name}")
