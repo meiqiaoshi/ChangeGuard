@@ -102,3 +102,28 @@ def load_change_request(path: Path) -> ChangeRequest:
         raise ChangeValidationError("Change request YAML must be a mapping")
 
     return ChangeRequest.model_validate(data)
+
+
+def build_change_request(
+    change_type: ChangeType,
+    table: str,
+    column: str | None = None,
+    new_name: str | None = None,
+    column_type: str | None = None,
+    new_type: str | None = None,
+    nullable: bool | None = None,
+    description: str | None = None,
+    requested_by: str | None = None,
+) -> ChangeRequest:
+    """Build a change request from CLI flag values."""
+    return ChangeRequest(
+        change_type=change_type,
+        table=table,
+        column=column,
+        new_name=new_name,
+        column_type=column_type,
+        new_type=new_type,
+        nullable=nullable,
+        description=description,
+        requested_by=requested_by,
+    )

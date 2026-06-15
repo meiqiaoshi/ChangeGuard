@@ -5,7 +5,12 @@ from pathlib import Path
 import typer
 from pydantic import ValidationError
 
-from changeguard.changes import ChangeValidationError, load_change_request
+from changeguard.changes import (
+    ChangeValidationError,
+    build_change_request,
+    load_change_request,
+)
+from changeguard.models import ChangeType
 from changeguard.registry import (
     DuplicateTableError,
     TableNotFoundError,
@@ -19,6 +24,18 @@ from changeguard.render import (
     render_table_list,
 )
 from changeguard.workspace import WORKSPACE_DIR_NAME, init_workspace
+
+
+def _parse_nullable(value: str | None) -> bool | None:
+    if value is None:
+        return None
+    normalized = value.strip().lower()
+    if normalized in {"true", "1", "yes"}:
+        return True
+    if normalized in {"false", "0", "no"}:
+        return False
+    raise ChangeValidationError(f"Invalid nullable value: {value}")
+
 
 app = typer.Typer(
     name="changeguard",
@@ -129,15 +146,64 @@ def inspect_cmd(
 
 @app.command("propose")
 def propose_cmd(
-    file: Path = typer.Option(
-        ...,
+    file: Path | None = typer.Option(
+        None,
         "--file",
         help="Path to a YAML change request file.",
     ),
+    change_type: ChangeType | None = typer.Option(
+        None,
+        "--change-type",
+        help="Change request type.",
+    ),
+    table: str | None = typer.Option(None, "--table", help="Target table name."),
+    column: str | None = typer.Option(None, "--column", help="Target column name."),
+    new_name: str | None = typer.Option(
+        None,
+        "--new-name",
+        help="New column name for rename_column.",
+    ),
+    column_type: str | None = typer.Option(
+        None,
+        "--type",
+        help="Column type for add_column.",
+    ),
+    new_type: str | None = typer.Option(
+        None,
+        "--new-type",
+        help="New column type for change_column_type.",
+    ),
+    nullable: str | None = typer.Option(
+        None,
+        "--nullable",
+        help="Nullability flag for add_column or set_nullable (true/false).",
+    ),
+    description: str | None = typer.Option(None, "--description", help="Change description."),
 ) -> None:
-    """Load and display a proposed change from a YAML file."""
+    """Load and display a proposed change from a YAML file or CLI flags."""
     try:
-        request = load_change_request(file)
+        if file is not None:
+            request = load_change_request(file)
+        elif change_type is not None:
+            if not table:
+                raise ChangeValidationError("table is required when using CLI flags")
+            request = build_change_request(
+                change_type=change_type,
+                table=table,
+                column=column,
+                new_name=new_name,
+                column_type=column_type,
+                new_type=new_type,
+                nullable=_parse_nullable(nullable),
+                description=description,
+            )
+        else:
+            typer.secho(
+                "Provide --file or --change-type with change flags.",
+                fg=typer.colors.RED,
+                err=True,
+            )
+            raise typer.Exit(code=1)
     except FileNotFoundError as exc:
         typer.secho(str(exc), fg=typer.colors.RED, err=True)
         raise typer.Exit(code=1) from exc
