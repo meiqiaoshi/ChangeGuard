@@ -43,3 +43,46 @@ def validate_rename_column(request: ChangeRequest) -> ChangeRequest:
         raise ChangeValidationError("new_name must differ from column")
 
     return request
+
+
+def _require_table_and_column(request: ChangeRequest) -> None:
+    if not request.table.strip():
+        raise ChangeValidationError("table is required")
+
+    if not request.column or not request.column.strip():
+        raise ChangeValidationError("column is required")
+
+
+def validate_drop_column(request: ChangeRequest) -> ChangeRequest:
+    """Validate a drop_column change request."""
+    if request.change_type != ChangeType.DROP_COLUMN:
+        raise ChangeValidationError("Expected drop_column change type")
+
+    _require_table_and_column(request)
+    return request
+
+
+def validate_change_column_type(request: ChangeRequest) -> ChangeRequest:
+    """Validate a change_column_type change request."""
+    if request.change_type != ChangeType.CHANGE_COLUMN_TYPE:
+        raise ChangeValidationError("Expected change_column_type change type")
+
+    _require_table_and_column(request)
+
+    if not request.new_type or not request.new_type.strip():
+        raise ChangeValidationError("new_type is required")
+
+    return request
+
+
+def validate_set_nullable(request: ChangeRequest) -> ChangeRequest:
+    """Validate a set_nullable change request."""
+    if request.change_type != ChangeType.SET_NULLABLE:
+        raise ChangeValidationError("Expected set_nullable change type")
+
+    _require_table_and_column(request)
+
+    if request.nullable is None:
+        raise ChangeValidationError("nullable is required")
+
+    return request
