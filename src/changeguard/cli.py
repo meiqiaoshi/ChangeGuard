@@ -3,7 +3,9 @@
 from pathlib import Path
 
 import typer
+from pydantic import ValidationError
 
+from changeguard.changes import ChangeValidationError, load_change_request
 from changeguard.registry import (
     DuplicateTableError,
     TableNotFoundError,
@@ -11,7 +13,11 @@ from changeguard.registry import (
     load_registry,
     register_table,
 )
-from changeguard.render import render_table_inspection, render_table_list
+from changeguard.render import (
+    render_change_request,
+    render_table_inspection,
+    render_table_list,
+)
 from changeguard.workspace import WORKSPACE_DIR_NAME, init_workspace
 
 app = typer.Typer(
@@ -119,6 +125,27 @@ def inspect_cmd(
         raise typer.Exit(code=1) from exc
 
     typer.echo(render_table_inspection(table))
+
+
+@app.command("propose")
+def propose_cmd(
+    file: Path = typer.Option(
+        ...,
+        "--file",
+        help="Path to a YAML change request file.",
+    ),
+) -> None:
+    """Load and display a proposed change from a YAML file."""
+    try:
+        request = load_change_request(file)
+    except FileNotFoundError as exc:
+        typer.secho(str(exc), fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1) from exc
+    except (ChangeValidationError, ValidationError) as exc:
+        typer.secho(str(exc), fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1) from exc
+
+    typer.echo(render_change_request(request))
 
 
 if __name__ == "__main__":
