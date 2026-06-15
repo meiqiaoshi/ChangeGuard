@@ -1,5 +1,9 @@
 """Change request models and YAML loading."""
 
+from pathlib import Path
+
+import yaml
+
 from changeguard.models import ChangeRequest, ChangeType
 
 
@@ -86,3 +90,15 @@ def validate_set_nullable(request: ChangeRequest) -> ChangeRequest:
         raise ChangeValidationError("nullable is required")
 
     return request
+
+
+def load_change_request(path: Path) -> ChangeRequest:
+    """Load a change request from a YAML file."""
+    if not path.exists():
+        raise FileNotFoundError(f"Change request file not found: {path}")
+
+    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        raise ChangeValidationError("Change request YAML must be a mapping")
+
+    return ChangeRequest.model_validate(data)
