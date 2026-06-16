@@ -32,6 +32,45 @@ class ChangeRequest(BaseModel):
     requested_by: str | None = None
 
 
+class ContractColumn(BaseModel):
+    """Column expectations defined in a data contract."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    type: str
+    required: bool = False
+    nullable: bool | None = None
+    unique: bool = False
+    primary_key: bool = False
+    min_value: float | int | None = None
+    max_value: float | int | None = None
+    allowed_values: list[str] | None = None
+
+
+class ContractRule(BaseModel):
+    """Named validation rule attached to a contract column."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str
+    column: str
+    check: str
+    value: float | int | str | None = None
+
+
+class Contract(BaseModel):
+    """Data contract describing expectations for a registered table."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    table: str
+    version: str
+    columns: dict[str, ContractColumn]
+    rules: list[ContractRule] = Field(default_factory=list)
+    owner: str | None = None
+    description: str | None = None
+
+
 class TableMetadata(BaseModel):
     """Metadata for a table registered in the ChangeGuard workspace."""
 
