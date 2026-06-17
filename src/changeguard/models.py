@@ -16,6 +16,25 @@ class ChangeType(str, Enum):
     SET_NULLABLE = "set_nullable"
 
 
+class CheckStatus(str, Enum):
+    """Result status for an individual safety check."""
+
+    PASS = "PASS"
+    WARN = "WARN"
+    FAIL = "FAIL"
+
+
+class CheckResult(BaseModel):
+    """Structured result from a single contract, lineage, or rule check."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str
+    status: CheckStatus
+    message: str
+    source: str = "contract"
+
+
 class ChangeRequest(BaseModel):
     """Structured proposal for a single schema or contract change."""
 
