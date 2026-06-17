@@ -1,6 +1,6 @@
 """CLI-friendly review result rendering."""
 
-from changeguard.models import ChangeRequest, TableMetadata
+from changeguard.models import ChangeRequest, Contract, TableMetadata
 
 
 def render_table_list(tables: list[TableMetadata]) -> str:
@@ -52,3 +52,26 @@ def render_change_request(request: ChangeRequest) -> str:
         lines.append(f"requested_by: {request.requested_by}")
 
     return "\n".join(lines)
+
+
+def render_contract_summary(contract: Contract) -> str:
+    """Render a summary of a loaded data contract."""
+    required_columns = [
+        name
+        for name, column in contract.columns.items()
+        if column.required or column.nullable is False
+    ]
+    owner = contract.owner or "(none)"
+    description = contract.description or "(none)"
+
+    return "\n".join(
+        [
+            f"table: {contract.table}",
+            f"version: {contract.version}",
+            f"owner: {owner}",
+            f"description: {description}",
+            f"columns: {len(contract.columns)}",
+            f"required columns: {', '.join(required_columns) or '(none)'}",
+            f"rules: {len(contract.rules)}",
+        ]
+    )

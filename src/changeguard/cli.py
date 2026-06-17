@@ -10,6 +10,7 @@ from changeguard.changes import (
     build_change_request,
     load_change_request,
 )
+from changeguard.contracts import load_contract
 from changeguard.models import ChangeType
 from changeguard.registry import (
     DuplicateTableError,
@@ -20,6 +21,7 @@ from changeguard.registry import (
 )
 from changeguard.render import (
     render_change_request,
+    render_contract_summary,
     render_table_inspection,
     render_table_list,
 )
@@ -142,6 +144,44 @@ def inspect_cmd(
         raise typer.Exit(code=1) from exc
 
     typer.echo(render_table_inspection(table))
+
+
+@app.command("check-contract")
+def check_contract_cmd(
+    name: str = typer.Argument(..., help="Registered table name."),
+    path: Path | None = typer.Option(
+        None,
+        "--path",
+        help="Base directory for the ChangeGuard workspace.",
+    ),
+) -> None:
+    """Load and summarize the contract for a registered table."""
+    base = path or Path.cwd()
+    try:
+        table = get_table(base, name)
+    except TableNotFoundError as exc:
+        typer.secho(str(exc), fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1) from exc
+
+    if not table.contract_path:
+        typer.secho(
+            f"No contract path registered for table: {name}",
+            fg=typer.colors.RED,
+            err=True,
+        )
+        raise typer.Exit(code=1)
+
+    contract_file = Path(table.contract_path)
+    if not contract_file.is_absolute():
+        contract_file = base / contract_file
+
+    try:
+        contract = load_contract(contract_file)
+    except FileNotFoundError as exc:
+        typer.secho(str(exc), fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1) from exc
+
+    typer.echo(render_contract_summary(contract))
 
 
 @app.command("propose")
