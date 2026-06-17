@@ -149,3 +149,95 @@ def check_rename_column_against_contract(
         )
     )
     return results
+
+
+def check_drop_column_against_contract(
+    contract: Contract,
+    request: ChangeRequest,
+) -> list[CheckResult]:
+    """Check a drop_column change request against a data contract."""
+    if request.column is None:
+        raise ValueError("drop_column change request requires a column")
+
+    column_name = request.column
+
+    if not has_contract_column(contract, column_name):
+        return [
+            CheckResult(
+                name="contract_drop_unknown_column",
+                status=CheckStatus.WARN,
+                message=(
+                    f"Column {column_name} is not defined in contract for table "
+                    f"{contract.table}"
+                ),
+            )
+        ]
+
+    if is_required_column(contract, column_name):
+        return [
+            CheckResult(
+                name="contract_drop_required_column",
+                status=CheckStatus.FAIL,
+                message=(
+                    f"Column {column_name} is required by contract for table "
+                    f"{contract.table}"
+                ),
+            )
+        ]
+
+    return [
+        CheckResult(
+            name="contract_drop_optional_column",
+            status=CheckStatus.WARN,
+            message=(
+                f"Column {column_name} is defined in contract for table "
+                f"{contract.table} and should be reviewed before dropping"
+            ),
+        )
+    ]
+
+
+def check_drop_column_against_contract(
+    contract: Contract,
+    request: ChangeRequest,
+) -> list[CheckResult]:
+    """Check a drop_column change request against a data contract."""
+    if request.column is None:
+        raise ValueError("drop_column change request requires a column")
+
+    column_name = request.column
+
+    if not has_contract_column(contract, column_name):
+        return [
+            CheckResult(
+                name="contract_drop_unknown_column",
+                status=CheckStatus.WARN,
+                message=(
+                    f"Column {column_name} is not defined in contract for table "
+                    f"{contract.table}"
+                ),
+            )
+        ]
+
+    if is_required_column(contract, column_name):
+        return [
+            CheckResult(
+                name="contract_drop_required_column",
+                status=CheckStatus.FAIL,
+                message=(
+                    f"Column {column_name} is required by contract for table "
+                    f"{contract.table}"
+                ),
+            )
+        ]
+
+    return [
+        CheckResult(
+            name="contract_drop_optional_column",
+            status=CheckStatus.WARN,
+            message=(
+                f"Column {column_name} is defined in contract for table "
+                f"{contract.table} and should be reviewed before dropping"
+            ),
+        )
+    ]
