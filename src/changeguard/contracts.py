@@ -86,3 +86,66 @@ def check_add_column_against_contract(
             ),
         )
     ]
+
+
+def check_rename_column_against_contract(
+    contract: Contract,
+    request: ChangeRequest,
+) -> list[CheckResult]:
+    """Check a rename_column change request against a data contract."""
+    if request.column is None or request.new_name is None:
+        raise ValueError("rename_column change request requires column and new_name")
+
+    old_name = request.column
+    new_name = request.new_name
+    results: list[CheckResult] = []
+
+    if has_contract_column(contract, new_name):
+        results.append(
+            CheckResult(
+                name="contract_new_column_exists",
+                status=CheckStatus.FAIL,
+                message=(
+                    f"Column {new_name} already exists in contract for table "
+                    f"{contract.table}"
+                ),
+            )
+        )
+        return results
+
+    if not has_contract_column(contract, old_name):
+        results.append(
+            CheckResult(
+                name="contract_rename_unknown_column",
+                status=CheckStatus.WARN,
+                message=(
+                    f"Column {old_name} is not defined in contract for table "
+                    f"{contract.table}"
+                ),
+            )
+        )
+        return results
+
+    if is_required_column(contract, old_name):
+        results.append(
+            CheckResult(
+                name="contract_rename_required_column",
+                status=CheckStatus.FAIL,
+                message=(
+                    f"Column {old_name} is required by contract for table "
+                    f"{contract.table}"
+                ),
+            )
+        )
+        return results
+
+    results.append(
+        CheckResult(
+            name="contract_rename_defined_column",
+            status=CheckStatus.WARN,
+            message=(
+                f"Column {old_name} is defined in contract for table {contract.table}"
+            ),
+        )
+    )
+    return results
