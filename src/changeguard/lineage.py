@@ -83,3 +83,57 @@ def load_lineage(path: Path) -> LineageGraph:
             )
 
     return LineageGraph(version=version, assets=assets, edges=edges)
+
+
+def _get_asset_ref(graph: LineageGraph, name: str) -> AssetRef:
+    for asset in graph.assets:
+        if asset.name == name:
+            return asset
+    return AssetRef(name=name, asset_type=AssetType.TABLE)
+
+
+def _direct_downstream(graph: LineageGraph, asset_ref: AssetRef) -> list[AssetRef]:
+    downstream: list[AssetRef] = []
+    seen: set[str] = set()
+
+    for edge in graph.edges:
+        if edge.source.name != asset_ref.name:
+            continue
+        if edge.target.name in seen:
+            continue
+        seen.add(edge.target.name)
+        downstream.append(edge.target)
+
+    return downstream
+
+
+def find_downstream(
+    graph: LineageGraph,
+    asset_ref: AssetRef,
+    depth: str | int = "all",
+) -> list[AssetRef]:
+    """Find downstream assets connected to the given asset."""
+    direct = _direct_downstream(graph, asset_ref)
+    if depth in ("direct", 1):
+        return direct
+
+    if depth not in ("all", -1):
+        raise ValueError(f"Unsupported lineage depth: {depth}")
+
+    downstream = list(direct)
+    seen_names = {asset.name for asset in downstream}
+    seen_names.add(asset_ref.name)
+    queue = [asset.name for asset in direct]
+
+    while queue:
+        current_name = queue.pop(0)
+        current_ref = _get_asset_ref(graph, current_name)
+
+        for target in _direct_downstream(graph, current_ref):
+            if target.name in seen_names:
+                continue
+            seen_names.add(target.name)
+            downstream.append(target)
+            queue.append(target.name)
+
+    return downstream
