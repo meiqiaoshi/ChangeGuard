@@ -90,6 +90,48 @@ class Contract(BaseModel):
     description: str | None = None
 
 
+class AssetType(str, Enum):
+    """Supported asset types referenced in lineage metadata."""
+
+    TABLE = "table"
+    COLUMN = "column"
+    MART = "mart"
+    DASHBOARD = "dashboard"
+    QUALITY_RULE = "quality_rule"
+    CONTRACT = "contract"
+
+
+class AssetRef(BaseModel):
+    """Reference to a logical data platform asset."""
+
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    name: str
+    asset_type: AssetType = Field(alias="type")
+    column: str | None = None
+
+
+class LineageEdge(BaseModel):
+    """Directed dependency between two assets."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    source: AssetRef
+    target: AssetRef
+    source_column: str | None = None
+    target_column: str | None = None
+
+
+class LineageGraph(BaseModel):
+    """Graph of lineage assets and dependency edges."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    version: str = "1.0"
+    assets: list[AssetRef] = Field(default_factory=list)
+    edges: list[LineageEdge] = Field(default_factory=list)
+
+
 class TableMetadata(BaseModel):
     """Metadata for a table registered in the ChangeGuard workspace."""
 
