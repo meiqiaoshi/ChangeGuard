@@ -1,10 +1,19 @@
 """Lineage metadata loading and impact lookup."""
 
+from dataclasses import dataclass
 from pathlib import Path
 
 import yaml
 
 from changeguard.models import AssetRef, AssetType, LineageEdge, LineageGraph
+
+
+@dataclass(frozen=True)
+class ColumnImpact:
+    """Downstream asset impacted by a source column."""
+
+    asset: AssetRef
+    target_column: str | None = None
 
 
 class LineageLoadError(ValueError):
@@ -137,3 +146,30 @@ def find_downstream(
             queue.append(target.name)
 
     return downstream
+
+
+def parse_column_reference(reference: str) -> tuple[str, str]:
+    """Parse a column reference such as sales.amount."""
+    parts = reference.split(".", 1)
+    if len(parts) != 2 or not parts[0] or not parts[1]:
+        raise ValueError(f"Invalid column reference: {reference}")
+    return parts[0], parts[1]
+
+
+def find_column_impact(graph: LineageGraph, reference: str) -> list[ColumnImpact]:
+    """Find downstream assets that depend on a source column."""
+    table_name, column_name = parse_column_reference(reference)
+    impacts_by_asset: dict[str, ColumnImpact] = {}
+
+    for edge in graph.edges:
+        if edge.source.name != table_name or edge.source_column != column_name:
+            continue
+
+        impact = ColumnImpact(asset=edge.target, target_column=edge.target_column)
+        existing = impacts_by_asset.get(edge.target.name)
+        if existing is None or (
+            existing.target_column is None and impact.target_column is not None
+        ):
+            impacts_by_asset[edge.target.name] = impact
+
+    return list(impacts_by_asset.values())
