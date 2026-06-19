@@ -1,6 +1,7 @@
 """CLI-friendly review result rendering."""
 
-from changeguard.models import ChangeRequest, Contract, TableMetadata
+from changeguard.lineage import ColumnImpact
+from changeguard.models import AssetRef, ChangeRequest, Contract, TableMetadata
 
 
 def render_table_list(tables: list[TableMetadata]) -> str:
@@ -75,3 +76,31 @@ def render_contract_summary(contract: Contract) -> str:
             f"rules: {len(contract.rules)}",
         ]
     )
+
+
+def render_downstream_impact_list(reference: str, assets: list[AssetRef]) -> str:
+    """Render downstream assets impacted by a table reference."""
+    if not assets:
+        return f"No downstream assets impacted by {reference}."
+
+    lines = [f"Impacted assets for {reference}:"]
+    for asset in assets:
+        lines.append(f"- {asset.name} ({asset.asset_type.value})")
+    return "\n".join(lines)
+
+
+def render_column_impact_list(reference: str, impacts: list[ColumnImpact]) -> str:
+    """Render downstream assets impacted by a column reference."""
+    if not impacts:
+        return f"No downstream assets impacted by {reference}."
+
+    lines = [f"Impacted assets for {reference}:"]
+    for impact in impacts:
+        if impact.target_column:
+            lines.append(
+                f"- {impact.asset.name} ({impact.asset.asset_type.value}) "
+                f"column: {impact.target_column}"
+            )
+        else:
+            lines.append(f"- {impact.asset.name} ({impact.asset.asset_type.value})")
+    return "\n".join(lines)

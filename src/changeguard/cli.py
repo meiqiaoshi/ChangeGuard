@@ -11,7 +11,8 @@ from changeguard.changes import (
     load_change_request,
 )
 from changeguard.contracts import load_contract
-from changeguard.models import ChangeType
+from changeguard.lineage import find_column_impact, find_downstream, load_lineage
+from changeguard.models import AssetRef, AssetType, ChangeType
 from changeguard.registry import (
     DuplicateTableError,
     TableNotFoundError,
@@ -21,7 +22,9 @@ from changeguard.registry import (
 )
 from changeguard.render import (
     render_change_request,
+    render_column_impact_list,
     render_contract_summary,
+    render_downstream_impact_list,
     render_table_inspection,
     render_table_list,
 )
@@ -45,6 +48,18 @@ app = typer.Typer(
     no_args_is_help=True,
     invoke_without_command=True,
 )
+
+
+def _load_lineage_for_table(base: Path, table_name: str):
+    table = get_table(base, table_name)
+    if not table.lineage_path:
+        raise ValueError(f"No lineage path registered for table: {table_name}")
+
+    lineage_file = Path(table.lineage_path)
+    if not lineage_file.is_absolute():
+        lineage_file = base / lineage_file
+
+    return load_lineage(lineage_file)
 
 
 @app.callback()
@@ -182,6 +197,39 @@ def check_contract_cmd(
         raise typer.Exit(code=1) from exc
 
     typer.echo(render_contract_summary(contract))
+
+
+@app.command("impact")
+def impact_cmd(
+    reference: str = typer.Argument(
+        ...,
+        help="Table name or table.column reference.",
+    ),
+    path: Path | None = typer.Option(
+        None,
+        "--path",
+        help="Base directory for the ChangeGuard workspace.",
+    ),
+) -> None:
+    """Show downstream assets impacted by a table or column."""
+    base = path or Path.cwd()
+    table_name = reference.split(".", 1)[0]
+
+    try:
+        graph = _load_lineage_for_table(base, table_name)
+    except TableNotFoundError as exc:
+        typer.secho(str(exc), fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1) from exc
+    except (ValueError, FileNotFoundError) as exc:
+        typer.secho(str(exc), fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1) from exc
+
+    if "." in reference:
+        typer.echo(render_column_impact_list(reference, find_column_impact(graph, reference)))
+        return
+
+    asset_ref = AssetRef(name=table_name, asset_type=AssetType.TABLE)
+    typer.echo(render_downstream_impact_list(reference, find_downstream(graph, asset_ref)))
 
 
 @app.command("propose")
