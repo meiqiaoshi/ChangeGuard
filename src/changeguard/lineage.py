@@ -5,7 +5,7 @@ from pathlib import Path
 
 import yaml
 
-from changeguard.models import AssetRef, AssetType, LineageEdge, LineageGraph
+from changeguard.models import AssetRef, AssetType, ChangeRequest, CheckResult, CheckStatus, LineageEdge, LineageGraph
 
 
 @dataclass(frozen=True)
@@ -173,3 +173,85 @@ def find_column_impact(graph: LineageGraph, reference: str) -> list[ColumnImpact
             impacts_by_asset[edge.target.name] = impact
 
     return list(impacts_by_asset.values())
+
+
+def _format_impacted_assets(impacts: list[ColumnImpact]) -> str:
+    formatted = []
+    for impact in impacts:
+        if impact.target_column:
+            formatted.append(f"{impact.asset.name}.{impact.target_column}")
+        else:
+            formatted.append(impact.asset.name)
+    return ", ".join(formatted)
+
+
+def check_rename_column_against_lineage(
+    graph: LineageGraph,
+    request: ChangeRequest,
+) -> list[CheckResult]:
+    """Check a rename_column change request against lineage metadata."""
+    if request.column is None:
+        raise ValueError("rename_column change request requires a column")
+
+    reference = f"{request.table}.{request.column}"
+    impacts = find_column_impact(graph, reference)
+
+    if impacts:
+        return [
+            CheckResult(
+                name="lineage_rename_column_in_use",
+                status=CheckStatus.FAIL,
+                message=(
+                    f"Column {request.column} is referenced by downstream assets: "
+                    f"{_format_impacted_assets(impacts)}"
+                ),
+                source="lineage",
+            )
+        ]
+
+    return [
+        CheckResult(
+            name="lineage_rename_column_unused",
+            status=CheckStatus.WARN,
+            message=(
+                f"Column {request.column} has no known downstream dependencies in lineage"
+            ),
+            source="lineage",
+        )
+    ]
+
+
+def check_drop_column_against_lineage(
+    graph: LineageGraph,
+    request: ChangeRequest,
+) -> list[CheckResult]:
+    """Check a drop_column change request against lineage metadata."""
+    if request.column is None:
+        raise ValueError("drop_column change request requires a column")
+
+    reference = f"{request.table}.{request.column}"
+    impacts = find_column_impact(graph, reference)
+
+    if impacts:
+        return [
+            CheckResult(
+                name="lineage_drop_column_in_use",
+                status=CheckStatus.FAIL,
+                message=(
+                    f"Column {request.column} is referenced by downstream assets: "
+                    f"{_format_impacted_assets(impacts)}"
+                ),
+                source="lineage",
+            )
+        ]
+
+    return [
+        CheckResult(
+            name="lineage_drop_column_unused",
+            status=CheckStatus.WARN,
+            message=(
+                f"Column {request.column} has no known downstream dependencies in lineage"
+            ),
+            source="lineage",
+        )
+    ]
