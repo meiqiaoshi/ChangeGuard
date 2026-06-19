@@ -20,11 +20,12 @@ from changeguard.registry import (
     load_registry,
     register_table,
 )
+from changeguard.rules import check_change_against_lineage
 from changeguard.render import (
-    render_change_request,
     render_column_impact_list,
     render_contract_summary,
     render_downstream_impact_list,
+    render_propose_output,
     render_table_inspection,
     render_table_list,
 )
@@ -299,7 +300,18 @@ def propose_cmd(
         typer.secho(str(exc), fg=typer.colors.RED, err=True)
         raise typer.Exit(code=1) from exc
 
-    typer.echo(render_change_request(request))
+    lineage_results = None
+    column_impacts = None
+    if request.change_type in (ChangeType.RENAME_COLUMN, ChangeType.DROP_COLUMN) and request.column:
+        try:
+            graph = _load_lineage_for_table(Path.cwd(), request.table)
+            reference = f"{request.table}.{request.column}"
+            column_impacts = find_column_impact(graph, reference)
+            lineage_results = check_change_against_lineage(graph, request)
+        except (TableNotFoundError, ValueError, FileNotFoundError):
+            pass
+
+    typer.echo(render_propose_output(request, lineage_results, column_impacts))
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 """CLI-friendly review result rendering."""
 
 from changeguard.lineage import ColumnImpact
-from changeguard.models import AssetRef, ChangeRequest, Contract, TableMetadata
+from changeguard.models import AssetRef, ChangeRequest, CheckResult, Contract, TableMetadata
 
 
 def render_table_list(tables: list[TableMetadata]) -> str:
@@ -104,3 +104,29 @@ def render_column_impact_list(reference: str, impacts: list[ColumnImpact]) -> st
         else:
             lines.append(f"- {impact.asset.name} ({impact.asset.asset_type.value})")
     return "\n".join(lines)
+
+
+def render_lineage_check_results(results: list[CheckResult]) -> str:
+    """Render lineage check results for propose output."""
+    lines = ["Lineage checks:"]
+    for result in results:
+        lines.append(f"- [{result.status.value}] {result.message}")
+    return "\n".join(lines)
+
+
+def render_propose_output(
+    request: ChangeRequest,
+    lineage_results: list[CheckResult] | None = None,
+    column_impacts: list[ColumnImpact] | None = None,
+) -> str:
+    """Render a proposed change with optional lineage impact details."""
+    sections = [render_change_request(request)]
+
+    if request.column is not None and column_impacts is not None:
+        reference = f"{request.table}.{request.column}"
+        sections.extend(["", render_column_impact_list(reference, column_impacts)])
+
+    if lineage_results:
+        sections.extend(["", render_lineage_check_results(lineage_results)])
+
+    return "\n".join(sections)
