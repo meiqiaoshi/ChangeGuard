@@ -6,7 +6,7 @@ from changeguard.models import ChangeRequest, ChangeType, Decision, RiskLevel
 from changeguard.planner import review_change
 
 
-def test_review_change_returns_review_result(tmp_path: Path) -> None:
+def test_review_change_returns_review_result_without_registered_table(tmp_path: Path) -> None:
     request = ChangeRequest(
         change_type=ChangeType.ADD_COLUMN,
         table="sales",
@@ -19,6 +19,4 @@ def test_review_change_returns_review_result(tmp_path: Path) -> None:
 
     assert result.decision == Decision.ALLOW
     assert result.risk_level == RiskLevel.LOW
-    assert len(result.check_results) == 1
-    assert result.check_results[0].source == "planner"
-    assert "add_column" in result.check_results[0].message
+    assert result.check_results == []

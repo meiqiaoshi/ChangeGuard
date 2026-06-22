@@ -4,7 +4,14 @@ from pathlib import Path
 
 import yaml
 
-from changeguard.models import ChangeRequest, CheckResult, CheckStatus, Contract, ContractColumn
+from changeguard.models import (
+    ChangeRequest,
+    ChangeType,
+    CheckResult,
+    CheckStatus,
+    Contract,
+    ContractColumn,
+)
 
 
 class ContractLoadError(ValueError):
@@ -309,3 +316,21 @@ def check_set_nullable_against_contract(
             message=f"Nullability for contract column {column_name} is unchanged",
         )
     ]
+
+
+def check_change_against_contract(
+    contract: Contract,
+    request: ChangeRequest,
+) -> list[CheckResult]:
+    """Run contract checks for supported change request types."""
+    if request.change_type == ChangeType.ADD_COLUMN:
+        return check_add_column_against_contract(contract, request)
+    if request.change_type == ChangeType.RENAME_COLUMN:
+        return check_rename_column_against_contract(contract, request)
+    if request.change_type == ChangeType.DROP_COLUMN:
+        return check_drop_column_against_contract(contract, request)
+    if request.change_type == ChangeType.CHANGE_COLUMN_TYPE:
+        return check_change_column_type_against_contract(contract, request)
+    if request.change_type == ChangeType.SET_NULLABLE:
+        return check_set_nullable_against_contract(contract, request)
+    return []
