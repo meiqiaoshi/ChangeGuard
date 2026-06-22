@@ -35,6 +35,35 @@ class CheckResult(BaseModel):
     source: str = "contract"
 
 
+class Decision(str, Enum):
+    """Final review decision for a proposed change."""
+
+    ALLOW = "ALLOW"
+    WARN = "WARN"
+    BLOCK = "BLOCK"
+
+
+class RiskLevel(str, Enum):
+    """Risk level assigned to a review result."""
+
+    LOW = "LOW"
+    MEDIUM = "MEDIUM"
+    HIGH = "HIGH"
+    CRITICAL = "CRITICAL"
+
+
+class ReviewResult(BaseModel):
+    """Structured output from a completed change review."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    decision: Decision
+    risk_level: RiskLevel
+    reasons: list[str] = Field(default_factory=list)
+    check_results: list[CheckResult] = Field(default_factory=list)
+    impacted_assets: list[str] = Field(default_factory=list)
+
+
 class ChangeRequest(BaseModel):
     """Structured proposal for a single schema or contract change."""
 
