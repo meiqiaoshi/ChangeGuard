@@ -64,6 +64,26 @@ class ReviewResult(BaseModel):
     impacted_assets: list[str] = Field(default_factory=list)
 
 
+class MigrationStep(BaseModel):
+    """Single step in a recommended safe migration plan."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    step_number: int
+    title: str
+    description: str
+    required: bool
+    validation_hint: str | None = None
+
+
+class MigrationPlan(BaseModel):
+    """Ordered migration plan for applying a change safely."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    steps: list[MigrationStep] = Field(default_factory=list)
+
+
 class ChangeRequest(BaseModel):
     """Structured proposal for a single schema or contract change."""
 
