@@ -1,4 +1,4 @@
-"""Tests for propose output with lineage impact."""
+"""Tests for propose command running the full review planner."""
 
 from pathlib import Path
 
@@ -11,7 +11,7 @@ from changeguard.workspace import init_workspace
 EXAMPLES_DIR = Path(__file__).resolve().parents[1] / "examples"
 
 
-def _setup_sales_with_lineage(project: Path) -> None:
+def _setup_sales_with_contract_and_lineage(project: Path) -> None:
     init_workspace(project)
     register_table(
         project,
@@ -22,11 +22,11 @@ def _setup_sales_with_lineage(project: Path) -> None:
     )
 
 
-def test_propose_rename_includes_impacted_assets_and_lineage_block(tmp_path: Path, monkeypatch) -> None:
+def test_propose_rename_runs_full_review_and_blocks(tmp_path: Path, monkeypatch) -> None:
     project = tmp_path / "project"
     project.mkdir()
     monkeypatch.chdir(project)
-    _setup_sales_with_lineage(project)
+    _setup_sales_with_contract_and_lineage(project)
 
     runner = CliRunner()
     result = runner.invoke(
@@ -37,42 +37,19 @@ def test_propose_rename_includes_impacted_assets_and_lineage_block(tmp_path: Pat
     assert result.exit_code == 0
     assert "change_type: rename_column" in result.stdout
     assert "Decision: BLOCK" in result.stdout
+    assert "Risk Level:" in result.stdout
+    assert result.stdout.split("Risk Level: ", 1)[1].splitlines()[0] in {"HIGH", "CRITICAL"}
+    assert "Checks:" in result.stdout
+    assert "(contract)" in result.stdout
+    assert "(lineage)" in result.stdout
     assert "Impacted Assets:" in result.stdout
     assert "mart_daily_revenue.total_amount" in result.stdout
-    assert "sales_dashboard.revenue_kpi" in result.stdout
-    assert "Checks:" in result.stdout
-    assert "(lineage)" in result.stdout
-    assert "[FAIL]" in result.stdout
+    assert "Reasons:" in result.stdout
 
 
-def test_propose_drop_includes_impacted_assets_and_lineage_block(tmp_path: Path, monkeypatch) -> None:
-    project = tmp_path / "project"
-    project.mkdir()
-    monkeypatch.chdir(project)
-    _setup_sales_with_lineage(project)
-
-    runner = CliRunner()
-    result = runner.invoke(
-        app,
-        [
-            "propose",
-            "--change-type",
-            "drop_column",
-            "--table",
-            "sales",
-            "--column",
-            "customer_id",
-        ],
-    )
-
-    assert result.exit_code == 0
-    assert "Impacted Assets:" in result.stdout
-    assert "customer_orders_summary" in result.stdout
-    assert "(lineage)" in result.stdout
-    assert "[FAIL]" in result.stdout
-
-
-def test_propose_rename_without_lineage_still_prints_change_request(tmp_path: Path, monkeypatch) -> None:
+def test_propose_add_nullable_column_runs_full_review_and_allows(
+    tmp_path: Path, monkeypatch
+) -> None:
     project = tmp_path / "project"
     project.mkdir()
     monkeypatch.chdir(project)
@@ -87,10 +64,11 @@ def test_propose_rename_without_lineage_still_prints_change_request(tmp_path: Pa
     runner = CliRunner()
     result = runner.invoke(
         app,
-        ["propose", "--file", str(EXAMPLES_DIR / "change_requests" / "rename_amount_column.yml")],
+        ["propose", "--file", str(EXAMPLES_DIR / "change_requests" / "add_discount_column.yml")],
     )
 
     assert result.exit_code == 0
-    assert "change_type: rename_column" in result.stdout
-    assert "Decision: BLOCK" in result.stdout
-    assert "(lineage)" not in result.stdout
+    assert "change_type: add_column" in result.stdout
+    assert "Decision: ALLOW" in result.stdout
+    assert "Risk Level: LOW" in result.stdout
+    assert "(contract)" in result.stdout

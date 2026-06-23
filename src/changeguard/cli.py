@@ -13,6 +13,7 @@ from changeguard.changes import (
 from changeguard.contracts import load_contract
 from changeguard.lineage import find_column_impact, find_downstream, load_lineage
 from changeguard.models import AssetRef, AssetType, ChangeType
+from changeguard.planner import review_change
 from changeguard.registry import (
     DuplicateTableError,
     TableNotFoundError,
@@ -20,7 +21,6 @@ from changeguard.registry import (
     load_registry,
     register_table,
 )
-from changeguard.rules import check_change_against_lineage
 from changeguard.render import (
     render_column_impact_list,
     render_contract_summary,
@@ -269,7 +269,7 @@ def propose_cmd(
     ),
     description: str | None = typer.Option(None, "--description", help="Change description."),
 ) -> None:
-    """Load and display a proposed change from a YAML file or CLI flags."""
+    """Load and review a proposed change from a YAML file or CLI flags."""
     try:
         if file is not None:
             request = load_change_request(file)
@@ -300,18 +300,8 @@ def propose_cmd(
         typer.secho(str(exc), fg=typer.colors.RED, err=True)
         raise typer.Exit(code=1) from exc
 
-    lineage_results = None
-    column_impacts = None
-    if request.change_type in (ChangeType.RENAME_COLUMN, ChangeType.DROP_COLUMN) and request.column:
-        try:
-            graph = _load_lineage_for_table(Path.cwd(), request.table)
-            reference = f"{request.table}.{request.column}"
-            column_impacts = find_column_impact(graph, reference)
-            lineage_results = check_change_against_lineage(graph, request)
-        except (TableNotFoundError, ValueError, FileNotFoundError):
-            pass
-
-    typer.echo(render_propose_output(request, lineage_results, column_impacts))
+    review = review_change(Path.cwd(), request)
+    typer.echo(render_propose_output(request, review))
 
 
 if __name__ == "__main__":

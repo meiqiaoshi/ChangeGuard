@@ -1,7 +1,15 @@
 """CLI-friendly review result rendering."""
 
 from changeguard.lineage import ColumnImpact
-from changeguard.models import AssetRef, ChangeRequest, CheckResult, Contract, TableMetadata
+from changeguard.models import (
+    AssetRef,
+    ChangeRequest,
+    CheckResult,
+    CheckStatus,
+    Contract,
+    ReviewResult,
+    TableMetadata,
+)
 
 
 def render_table_list(tables: list[TableMetadata]) -> str:
@@ -114,19 +122,38 @@ def render_lineage_check_results(results: list[CheckResult]) -> str:
     return "\n".join(lines)
 
 
-def render_propose_output(
-    request: ChangeRequest,
-    lineage_results: list[CheckResult] | None = None,
-    column_impacts: list[ColumnImpact] | None = None,
-) -> str:
-    """Render a proposed change with optional lineage impact details."""
-    sections = [render_change_request(request)]
+def render_propose_output(request: ChangeRequest, review: ReviewResult) -> str:
+    """Render a proposed change with its full review result."""
+    return "\n".join([render_change_request(request), "", render_review_result(review)])
 
-    if request.column is not None and column_impacts is not None:
-        reference = f"{request.table}.{request.column}"
-        sections.extend(["", render_column_impact_list(reference, column_impacts)])
 
-    if lineage_results:
-        sections.extend(["", render_lineage_check_results(lineage_results)])
+def render_review_result(result: ReviewResult) -> str:
+    """Render a structured change review result for CLI output."""
+    lines = [
+        f"Decision: {result.decision.value}",
+        f"Risk Level: {result.risk_level.value}",
+        "",
+        "Checks:",
+    ]
 
-    return "\n".join(sections)
+    if result.check_results:
+        for check in result.check_results:
+            lines.append(f"- [{check.status.value}] ({check.source}) {check.message}")
+    else:
+        lines.append("- (none)")
+
+    lines.extend(["", "Impacted Assets:"])
+    if result.impacted_assets:
+        for asset in result.impacted_assets:
+            lines.append(f"- {asset}")
+    else:
+        lines.append("- (none)")
+
+    lines.extend(["", "Reasons:"])
+    if result.reasons:
+        for reason in result.reasons:
+            lines.append(f"- {reason}")
+    else:
+        lines.append("- (none)")
+
+    return "\n".join(lines)

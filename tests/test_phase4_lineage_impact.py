@@ -76,7 +76,9 @@ def test_phase4_end_to_end_lineage_impact_analysis(tmp_path: Path, monkeypatch) 
         ["propose", "--file", str(EXAMPLES_DIR / "change_requests" / "rename_amount_column.yml")],
     )
     assert propose_result.exit_code == 0
-    assert "Impacted assets for sales.amount:" in propose_result.stdout
-    assert "mart_daily_revenue" in propose_result.stdout
-    assert "Lineage checks:" in propose_result.stdout
+    assert "Decision: BLOCK" in propose_result.stdout
+    assert "Impacted Assets:" in propose_result.stdout
+    assert "mart_daily_revenue.total_amount" in propose_result.stdout
+    assert "Checks:" in propose_result.stdout
+    assert "(lineage)" in propose_result.stdout
     assert "[FAIL]" in propose_result.stdout

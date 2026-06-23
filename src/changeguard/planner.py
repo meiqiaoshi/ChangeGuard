@@ -53,7 +53,11 @@ def _load_lineage_checks(base: Path, change_request: ChangeRequest):
 
 
 def review_change(base: Path | None, change_request: ChangeRequest) -> ReviewResult:
-    """Review a proposed change and return a structured review result."""
+    """Review a proposed change and return a structured review result.
+
+    Runs contract and lineage checks when the table is registered in the workspace.
+    Used by the ``propose`` CLI command.
+    """
     project_base = base or Path.cwd()
     check_results = []
     impacted_assets: list[str] = []
