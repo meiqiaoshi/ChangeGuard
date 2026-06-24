@@ -52,18 +52,6 @@ class RiskLevel(str, Enum):
     CRITICAL = "CRITICAL"
 
 
-class ReviewResult(BaseModel):
-    """Structured output from a completed change review."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    decision: Decision
-    risk_level: RiskLevel
-    reasons: list[str] = Field(default_factory=list)
-    check_results: list[CheckResult] = Field(default_factory=list)
-    impacted_assets: list[str] = Field(default_factory=list)
-
-
 class MigrationStep(BaseModel):
     """Single step in a recommended safe migration plan."""
 
@@ -82,6 +70,19 @@ class MigrationPlan(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     steps: list[MigrationStep] = Field(default_factory=list)
+
+
+class ReviewResult(BaseModel):
+    """Structured output from a completed change review."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    decision: Decision
+    risk_level: RiskLevel
+    reasons: list[str] = Field(default_factory=list)
+    check_results: list[CheckResult] = Field(default_factory=list)
+    impacted_assets: list[str] = Field(default_factory=list)
+    migration_plan: MigrationPlan | None = None
 
 
 class ChangeRequest(BaseModel):

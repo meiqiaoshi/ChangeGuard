@@ -286,6 +286,20 @@ def generate_required_column_migration_plan(
     )
 
 
+def generate_migration_plan(
+    change_request: ChangeRequest,
+    impacted_assets: list[str] | None = None,
+) -> MigrationPlan | None:
+    """Generate a migration plan for supported change request types."""
+    if change_request.change_type == ChangeType.RENAME_COLUMN:
+        return generate_rename_column_migration_plan(change_request, impacted_assets)
+    if change_request.change_type == ChangeType.DROP_COLUMN:
+        return generate_drop_column_migration_plan(change_request, impacted_assets)
+    if change_request.change_type == ChangeType.ADD_COLUMN:
+        return generate_required_column_migration_plan(change_request)
+    return None
+
+
 def review_change(base: Path | None, change_request: ChangeRequest) -> ReviewResult:
     """Review a proposed change and return a structured review result.
 
@@ -315,6 +329,7 @@ def review_change(base: Path | None, change_request: ChangeRequest) -> ReviewRes
         for result in check_results
         if result.status in (CheckStatus.WARN, CheckStatus.FAIL)
     ]
+    migration_plan = generate_migration_plan(change_request, impacted_assets)
 
     return ReviewResult(
         decision=decision,
@@ -322,4 +337,5 @@ def review_change(base: Path | None, change_request: ChangeRequest) -> ReviewRes
         reasons=reasons,
         check_results=check_results,
         impacted_assets=impacted_assets,
+        migration_plan=migration_plan,
     )
