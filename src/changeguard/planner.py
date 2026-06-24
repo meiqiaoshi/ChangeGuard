@@ -4,7 +4,14 @@ from pathlib import Path
 
 from changeguard.contracts import check_change_against_contract, load_contract
 from changeguard.lineage import find_column_impact, load_lineage
-from changeguard.models import ChangeRequest, ChangeType, CheckStatus, ReviewResult
+from changeguard.models import (
+    ChangeRequest,
+    ChangeType,
+    CheckStatus,
+    MigrationPlan,
+    MigrationStep,
+    ReviewResult,
+)
 from changeguard.registry import TableNotFoundError, get_table
 from changeguard.rules import aggregate_decision, check_change_against_lineage, score_risk_level
 
@@ -50,6 +57,96 @@ def _load_lineage_checks(base: Path, change_request: ChangeRequest):
         ]
 
     return check_results, impacted_assets
+
+
+def generate_rename_column_migration_plan(
+    change_request: ChangeRequest,
+    impacted_assets: list[str] | None = None,
+) -> MigrationPlan | None:
+    """Generate a compatibility migration plan for an unsafe column rename."""
+    if change_request.change_type != ChangeType.RENAME_COLUMN:
+        return None
+    if not change_request.column or not change_request.new_name:
+        return None
+
+    table = change_request.table
+    old_column = change_request.column
+    new_column = change_request.new_name
+    downstream = impacted_assets or []
+    downstream_summary = (
+        ", ".join(downstream)
+        if downstream
+        else "all known downstream assets that reference the old column"
+    )
+
+    return MigrationPlan(
+        steps=[
+            MigrationStep(
+                step_number=1,
+                title="Add new column as nullable",
+                description=(
+                    f"Add {new_column} as a nullable column on {table} "
+                    f"alongside {old_column}."
+                ),
+                required=True,
+                validation_hint=(
+                    f"Confirm {table}.{new_column} exists and remains nullable."
+                ),
+            ),
+            MigrationStep(
+                step_number=2,
+                title="Backfill new column from old column",
+                description=(
+                    f"Copy values from {table}.{old_column} into {table}.{new_column} "
+                    "for all existing rows."
+                ),
+                required=True,
+                validation_hint="Row counts and sampled values should match after backfill.",
+            ),
+            MigrationStep(
+                step_number=3,
+                title="Update downstream assets",
+                description=(
+                    f"Update {downstream_summary} to read {new_column} "
+                    f"instead of {old_column}."
+                ),
+                required=True,
+                validation_hint="Downstream jobs and dashboards should pass smoke tests.",
+            ),
+            MigrationStep(
+                step_number=4,
+                title="Run contract checks",
+                description=(
+                    f"Validate {table}.{new_column} against the data contract "
+                    "before removing the old column."
+                ),
+                required=True,
+                validation_hint="Contract checks for the new column should pass.",
+            ),
+            MigrationStep(
+                step_number=5,
+                title="Run quality checks",
+                description=(
+                    f"Run data quality checks on {table}.{new_column} "
+                    "and impacted downstream assets."
+                ),
+                required=True,
+                validation_hint="Quality checks should show no regressions.",
+            ),
+            MigrationStep(
+                step_number=6,
+                title="Deprecate old column after compatibility window",
+                description=(
+                    f"Stop writing to {table}.{old_column}, monitor through a "
+                    "compatibility window, then remove the old column."
+                ),
+                required=False,
+                validation_hint=(
+                    "No consumers should reference the old column before drop."
+                ),
+            ),
+        ]
+    )
 
 
 def review_change(base: Path | None, change_request: ChangeRequest) -> ReviewResult:
