@@ -149,6 +149,82 @@ def generate_rename_column_migration_plan(
     )
 
 
+def generate_drop_column_migration_plan(
+    change_request: ChangeRequest,
+    impacted_assets: list[str] | None = None,
+) -> MigrationPlan | None:
+    """Generate a deprecation migration plan for an unsafe column drop."""
+    if change_request.change_type != ChangeType.DROP_COLUMN:
+        return None
+    if not change_request.column:
+        return None
+
+    table = change_request.table
+    column = change_request.column
+    downstream = impacted_assets or []
+    downstream_summary = (
+        ", ".join(downstream)
+        if downstream
+        else "all known downstream assets that reference the column"
+    )
+
+    return MigrationPlan(
+        steps=[
+            MigrationStep(
+                step_number=1,
+                title="Check downstream usage",
+                description=(
+                    f"Confirm which assets depend on {table}.{column}, "
+                    f"including {downstream_summary}."
+                ),
+                required=True,
+                validation_hint="Document all downstream references before deprecation.",
+            ),
+            MigrationStep(
+                step_number=2,
+                title="Mark column deprecated",
+                description=(
+                    f"Mark {table}.{column} as deprecated in schema metadata "
+                    "and communicate the planned removal date."
+                ),
+                required=True,
+                validation_hint="Deprecation should be visible to data producers and consumers.",
+            ),
+            MigrationStep(
+                step_number=3,
+                title="Update consumers",
+                description=(
+                    f"Update {downstream_summary} to stop depending on {table}.{column}."
+                ),
+                required=True,
+                validation_hint="Consumers should pass smoke tests without the column.",
+            ),
+            MigrationStep(
+                step_number=4,
+                title="Run validation",
+                description=(
+                    f"Run contract and quality validation for {table} "
+                    "and impacted downstream assets."
+                ),
+                required=True,
+                validation_hint="Validation should confirm no remaining dependency on the column.",
+            ),
+            MigrationStep(
+                step_number=5,
+                title="Remove after compatibility window",
+                description=(
+                    f"Drop {table}.{column} only after a compatibility window "
+                    "with no active downstream usage."
+                ),
+                required=False,
+                validation_hint=(
+                    "No jobs, dashboards, or contracts should reference the column."
+                ),
+            ),
+        ]
+    )
+
+
 def review_change(base: Path | None, change_request: ChangeRequest) -> ReviewResult:
     """Review a proposed change and return a structured review result.
 
