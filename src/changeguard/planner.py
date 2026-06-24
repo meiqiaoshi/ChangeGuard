@@ -225,6 +225,67 @@ def generate_drop_column_migration_plan(
     )
 
 
+def generate_required_column_migration_plan(
+    change_request: ChangeRequest,
+) -> MigrationPlan | None:
+    """Generate a backfill migration plan for adding a required column."""
+    if change_request.change_type != ChangeType.ADD_COLUMN:
+        return None
+    if not change_request.column or change_request.nullable is not False:
+        return None
+
+    table = change_request.table
+    column = change_request.column
+    column_type = change_request.column_type or "the target type"
+
+    return MigrationPlan(
+        steps=[
+            MigrationStep(
+                step_number=1,
+                title="Add column as nullable or provide default",
+                description=(
+                    f"Add {table}.{column} as nullable or with a safe default "
+                    f"({column_type}) so existing rows remain valid."
+                ),
+                required=True,
+                validation_hint=(
+                    "Choose nullable rollout or a default that satisfies downstream needs."
+                ),
+            ),
+            MigrationStep(
+                step_number=2,
+                title="Backfill existing records",
+                description=(
+                    f"Populate {table}.{column} for all existing rows before "
+                    "making the column required."
+                ),
+                required=True,
+                validation_hint="Backfill logic should cover historical partitions.",
+            ),
+            MigrationStep(
+                step_number=3,
+                title="Validate non-null coverage",
+                description=(
+                    f"Confirm {table}.{column} has no null values across "
+                    "existing and newly ingested data."
+                ),
+                required=True,
+                validation_hint="Null-rate checks should reach zero before tightening.",
+            ),
+            MigrationStep(
+                step_number=4,
+                title="Tighten contract after validation",
+                description=(
+                    f"Update schema and contract metadata to mark {table}.{column} "
+                    "as required only after backfill validation succeeds."
+                ),
+                required=True,
+                validation_hint="Contract and schema should match enforced nullability.",
+            ),
+        ]
+    )
+
+
 def review_change(base: Path | None, change_request: ChangeRequest) -> ReviewResult:
     """Review a proposed change and return a structured review result.
 
