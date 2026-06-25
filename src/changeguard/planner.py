@@ -8,6 +8,7 @@ from changeguard.models import (
     ChangeRequest,
     ChangeType,
     CheckStatus,
+    Decision,
     MigrationPlan,
     MigrationStep,
     ReviewResult,
@@ -300,6 +301,18 @@ def generate_migration_plan(
     return None
 
 
+def generate_rollback_notes(decision: Decision) -> list[str]:
+    """Generate rollback guidance for risky change reviews."""
+    if decision == Decision.ALLOW:
+        return []
+
+    return [
+        "Keep old column until downstream validation passes",
+        "Do not delete old data files",
+        "Restore previous contract version if checks fail",
+    ]
+
+
 def review_change(base: Path | None, change_request: ChangeRequest) -> ReviewResult:
     """Review a proposed change and return a structured review result.
 
@@ -330,6 +343,7 @@ def review_change(base: Path | None, change_request: ChangeRequest) -> ReviewRes
         if result.status in (CheckStatus.WARN, CheckStatus.FAIL)
     ]
     migration_plan = generate_migration_plan(change_request, impacted_assets)
+    rollback_notes = generate_rollback_notes(decision)
 
     return ReviewResult(
         decision=decision,
@@ -338,4 +352,5 @@ def review_change(base: Path | None, change_request: ChangeRequest) -> ReviewRes
         check_results=check_results,
         impacted_assets=impacted_assets,
         migration_plan=migration_plan,
+        rollback_notes=rollback_notes,
     )

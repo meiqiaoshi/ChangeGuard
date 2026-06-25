@@ -131,6 +131,17 @@ def render_migration_plan(plan: MigrationPlan) -> str:
     return "\n".join(lines)
 
 
+def render_rollback_notes(notes: list[str]) -> str:
+    """Render rollback guidance for CLI output."""
+    lines = ["Rollback Notes:"]
+    if notes:
+        for note in notes:
+            lines.append(f"- {note}")
+    else:
+        lines.append("- (none)")
+    return "\n".join(lines)
+
+
 def render_propose_output(request: ChangeRequest, review: ReviewResult) -> str:
     """Render a proposed change with its full review result."""
     return "\n".join([render_change_request(request), "", render_review_result(review)])
@@ -167,5 +178,8 @@ def render_review_result(result: ReviewResult) -> str:
 
     if result.migration_plan and result.migration_plan.steps:
         lines.extend(["", render_migration_plan(result.migration_plan)])
+
+    if result.rollback_notes:
+        lines.extend(["", render_rollback_notes(result.rollback_notes)])
 
     return "\n".join(lines)

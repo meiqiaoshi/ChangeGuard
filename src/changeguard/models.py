@@ -83,6 +83,7 @@ class ReviewResult(BaseModel):
     check_results: list[CheckResult] = Field(default_factory=list)
     impacted_assets: list[str] = Field(default_factory=list)
     migration_plan: MigrationPlan | None = None
+    rollback_notes: list[str] = Field(default_factory=list)
 
 
 class ChangeRequest(BaseModel):
