@@ -5,7 +5,7 @@ from pathlib import Path
 import typer
 from pydantic import ValidationError
 
-from changeguard.audit import format_audit_log_path, save_review_run
+from changeguard.audit import format_audit_log_path, list_run_summaries, save_review_run
 from changeguard.changes import (
     ChangeValidationError,
     build_change_request,
@@ -27,6 +27,7 @@ from changeguard.render import (
     render_contract_summary,
     render_downstream_impact_list,
     render_propose_output,
+    render_runs_list,
     render_table_inspection,
     render_table_list,
 )
@@ -302,10 +303,22 @@ def propose_cmd(
         raise typer.Exit(code=1) from exc
 
     review = review_change(Path.cwd(), request)
-    run_file = save_review_run(Path.cwd(), review)
+    run_file = save_review_run(Path.cwd(), review, change_request=request)
     output = render_propose_output(request, review)
     audit_reference = format_audit_log_path(run_file, Path.cwd())
     typer.echo(f"{output}\n\nAudit log: {audit_reference}")
+
+
+@app.command("runs")
+def runs_cmd(
+    path: Path | None = typer.Option(
+        None,
+        "--path",
+        help="Base directory for the ChangeGuard workspace.",
+    ),
+) -> None:
+    """List saved review runs in the workspace."""
+    typer.echo(render_runs_list(list_run_summaries(path or Path.cwd())))
 
 
 if __name__ == "__main__":

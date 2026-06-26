@@ -11,6 +11,7 @@ from changeguard.models import (
     ReviewResult,
     TableMetadata,
 )
+from changeguard.audit import ReviewRunSummary
 
 
 def render_table_list(tables: list[TableMetadata]) -> str:
@@ -18,6 +19,20 @@ def render_table_list(tables: list[TableMetadata]) -> str:
     if not tables:
         return "No tables registered."
     return "\n".join(table.name for table in tables)
+
+
+def render_runs_list(runs: list[ReviewRunSummary]) -> str:
+    """Render a tabular list of saved review runs."""
+    if not runs:
+        return "No review runs saved."
+
+    lines = ["run_id\tdecision\trisk_level\tchange_type\ttarget\tcreated_at"]
+    for run in runs:
+        lines.append(
+            f"{run.run_id}\t{run.decision}\t{run.risk_level}\t"
+            f"{run.change_type}\t{run.target}\t{run.created_at}"
+        )
+    return "\n".join(lines)
 
 
 def render_table_inspection(table: TableMetadata) -> str:
