@@ -9,6 +9,10 @@ from changeguard.workspace import runs_path
 RUN_ID_WIDTH = 6
 
 
+class ReviewRunNotFoundError(LookupError):
+    """Raised when a saved review run cannot be found."""
+
+
 def next_run_id(base: Path | None = None) -> str:
     """Return the next sequential review run ID for the workspace."""
     runs_dir = runs_path(base)
@@ -34,3 +38,31 @@ def save_review_run(base: Path | None, review_result: ReviewResult) -> Path:
     }
     run_file.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     return run_file
+
+
+def _normalize_run_id(run_id: str) -> str:
+    if run_id.isdigit():
+        return str(int(run_id)).zfill(RUN_ID_WIDTH)
+    return run_id
+
+
+def list_runs(base: Path | None = None) -> list[str]:
+    """List saved review run IDs in ascending order."""
+    runs_dir = runs_path(base)
+    if not runs_dir.exists():
+        return []
+
+    run_ids = [path.stem for path in runs_dir.glob("*.json") if path.stem.isdigit()]
+    return sorted(run_ids)
+
+
+def load_run(base: Path | None, run_id: str) -> ReviewResult:
+    """Load a saved review result from the workspace runs directory."""
+    normalized_run_id = _normalize_run_id(run_id)
+    run_file = runs_path(base) / f"{normalized_run_id}.json"
+    if not run_file.is_file():
+        raise ReviewRunNotFoundError(f"Review run not found: {run_id}")
+
+    payload = json.loads(run_file.read_text(encoding="utf-8"))
+    payload.pop("run_id", None)
+    return ReviewResult.model_validate(payload)
