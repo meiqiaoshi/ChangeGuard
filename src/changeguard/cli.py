@@ -5,6 +5,7 @@ from pathlib import Path
 import typer
 from pydantic import ValidationError
 
+from changeguard.audit import format_audit_log_path, save_review_run
 from changeguard.changes import (
     ChangeValidationError,
     build_change_request,
@@ -301,7 +302,10 @@ def propose_cmd(
         raise typer.Exit(code=1) from exc
 
     review = review_change(Path.cwd(), request)
-    typer.echo(render_propose_output(request, review))
+    run_file = save_review_run(Path.cwd(), review)
+    output = render_propose_output(request, review)
+    audit_reference = format_audit_log_path(run_file, Path.cwd())
+    typer.echo(f"{output}\n\nAudit log: {audit_reference}")
 
 
 if __name__ == "__main__":

@@ -40,6 +40,15 @@ def save_review_run(base: Path | None, review_result: ReviewResult) -> Path:
     return run_file
 
 
+def format_audit_log_path(run_file: Path, base: Path | None = None) -> str:
+    """Format a saved audit log path for CLI output."""
+    project_base = base or Path.cwd()
+    try:
+        return str(run_file.relative_to(project_base))
+    except ValueError:
+        return str(run_file)
+
+
 def _normalize_run_id(run_id: str) -> str:
     if run_id.isdigit():
         return str(int(run_id)).zfill(RUN_ID_WIDTH)
