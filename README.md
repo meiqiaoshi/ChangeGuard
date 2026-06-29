@@ -2,11 +2,179 @@
 
 A local-first data platform change safety checker for schema changes, data contracts, lineage impact analysis, migration planning, and audit logs.
 
-## One-Sentence Summary
-
 ChangeGuard validates proposed schema or contract changes against metadata, contracts, and lineage **before** those changes are applied — and tells you whether the change is safe and what might break downstream.
 
-> **ChangeGuard is a change safety checker, not an AI chatbot.**
+> **ChangeGuard is a change safety checker, not an AI chatbot.** Rules decide. AI explains.
+
+## Installation
+
+From a clean checkout:
+
+```bash
+git clone <repo-url>
+cd ChangeGuard
+python -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
+```
+
+Or with [uv](https://github.com/astral-sh/uv):
+
+```bash
+uv sync --dev
+```
+
+Verify the CLI:
+
+```bash
+changeguard --help
+```
+
+## Quickstart
+
+Run the full demo in a temporary workspace:
+
+```bash
+./examples/demo_workflow.sh
+```
+
+Or follow these steps manually from the repository root:
+
+```bash
+changeguard init
+
+changeguard register-table \
+  --name sales \
+  --schema examples/schemas/sales_schema.json \
+  --contract examples/contracts/sales_contract.yml \
+  --lineage examples/lineage/sample_lineage.yml
+
+changeguard tables
+changeguard inspect sales
+changeguard impact sales.amount
+```
+
+## Example Allowed Change
+
+Propose adding a nullable column:
+
+```bash
+changeguard propose \
+  --file examples/change_requests/allow_add_nullable_column.yml
+```
+
+Example output:
+
+```text
+Change Request
+change_type: add_column
+table: sales
+column: promo_code
+...
+
+Decision
+ALLOW
+
+Risk Level
+LOW
+
+Checks
+- [PASS] (contract) Adding nullable column promo_code is allowed by contract
+
+Audit Log
+.changeguard/runs/000001.json
+```
+
+## Example Blocked Change
+
+Propose renaming a required downstream column:
+
+```bash
+changeguard propose \
+  --file examples/change_requests/block_rename_required_column.yml
+```
+
+Example output:
+
+```text
+Decision
+BLOCK
+
+Risk Level
+CRITICAL
+
+Checks
+- [FAIL] (contract) Column amount is required by contract for table sales
+- [FAIL] (lineage) Column amount is referenced by downstream assets: ...
+
+Impacted Assets
+- mart_daily_revenue.total_amount
+- sales_dashboard.revenue_kpi
+
+Migration Plan
+1. Add new column as nullable
+2. Backfill new column from old column
+3. Update downstream assets
+4. Run contract checks
+5. Run quality checks
+6. Deprecate old column after compatibility window
+
+Rollback Notes
+- Keep old column until downstream validation passes
+- Do not delete old data files
+- Restore previous contract version if checks fail
+```
+
+Other example requests:
+
+| File | Expected outcome |
+|------|------------------|
+| `examples/change_requests/allow_add_nullable_column.yml` | ALLOW |
+| `examples/change_requests/warn_drop_optional_column.yml` | WARN |
+| `examples/change_requests/block_rename_required_column.yml` | BLOCK |
+
+## Audit Log Example
+
+Every successful `propose` run is saved under `.changeguard/runs/`:
+
+```bash
+changeguard runs
+changeguard review-run 000001
+```
+
+Example run listing:
+
+```text
+run_id  decision  risk_level  change_type     target           created_at
+000001  ALLOW     LOW         add_column      sales.promo_code 2026-06-29T...
+000002  BLOCK     CRITICAL    rename_column   sales.amount     2026-06-29T...
+```
+
+Each audit JSON file stores the decision, checks, migration plan, rollback notes, and change metadata for later inspection.
+
+## Project Architecture
+
+```text
+Change Request
+      ↓
+Metadata Loader (registry, contracts, lineage)
+      ↓
+Contract Checks + Lineage Checks + Rule Engine
+      ↓
+Decision + Migration Plan + Audit Log
+```
+
+Workspace layout:
+
+```text
+.changeguard/
+├── config.json
+├── registry.json
+└── runs/
+    └── 000001.json
+```
+
+Source metadata lives in the repository under `examples/` or user-defined paths referenced by the registry. See [docs/system_design.md](docs/system_design.md) for the full design.
 
 ## Why This Project Exists
 
@@ -31,59 +199,6 @@ ChangeGuard fills the **pre-change safety review** gap in a local data platform 
 | Decision model | Conversational assistance | Deterministic rule engine |
 | Output | Natural language answers | `ALLOW` / `WARN` / `BLOCK` with risk level, reasons, and migration plan |
 
-Core principle: **Rules decide. AI explains.** (Any AI explanation layer is optional and comes later.)
-
-## Core Workflow Preview
-
-```bash
-changeguard init
-
-changeguard register-table \
-  --name sales \
-  --schema examples/schemas/sales_schema.json \
-  --contract examples/contracts/sales_contract.yml
-
-changeguard tables
-changeguard inspect sales
-
-changeguard propose \
-  --change-type add_column \
-  --table sales \
-  --column discount \
-  --type float \
-  --nullable true
-
-changeguard propose \
-  --change-type rename_column \
-  --table sales \
-  --column amount \
-  --new-name order_amount
-
-changeguard impact sales.amount
-changeguard runs
-changeguard review-run 000001
-```
-
-Example review output:
-
-```text
-Decision: BLOCK
-Risk Level: HIGH
-
-Reason:
-- sales.amount is required by sales_contract.yml
-- sales.amount is referenced by mart_daily_revenue.total_amount
-- quality rule sales_amount_positive depends on sales.amount
-
-Safe Migration Plan:
-1. Add order_amount as a new nullable column
-2. Backfill order_amount from amount
-3. Update downstream assets
-4. Run contract checks
-5. Run quality checks
-6. Deprecate amount after compatibility window
-```
-
 ## Non-Goals
 
 The initial version intentionally avoids:
@@ -98,21 +213,21 @@ The initial version intentionally avoids:
 
 ChangeGuard stays a clean, local-first, inspectable CLI tool.
 
-## Initial Roadmap
+## Roadmap
 
-| Phase | Focus |
-|-------|-------|
-| 0 | Documentation and project scaffold |
-| 1 | Workspace and table registry MVP |
-| 2 | Change request model |
-| 3 | Contract validation |
-| 4 | Lineage impact analysis |
-| 5 | Decision engine (`ALLOW` / `WARN` / `BLOCK`) |
-| 6 | Migration plan generator |
-| 7 | Audit log and run review |
-| 8 | CLI polish and example workflows |
-| 9 | Optional AI explanation layer |
-| 10 | Portfolio packaging |
+| Phase | Focus | Status |
+|-------|-------|--------|
+| 0 | Documentation and project scaffold | Done |
+| 1 | Workspace and table registry | Done |
+| 2 | Change request model | Done |
+| 3 | Contract validation | Done |
+| 4 | Lineage impact analysis | Done |
+| 5 | Decision engine (`ALLOW` / `WARN` / `BLOCK`) | Done |
+| 6 | Migration plan generator | Done |
+| 7 | Audit log and run review | Done |
+| 8 | CLI polish and example workflows | In progress |
+| 9 | Optional AI explanation layer | Planned |
+| 10 | Portfolio packaging | Planned |
 
 ## License
 
