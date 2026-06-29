@@ -1,0 +1,6 @@
+change_type: add_column
+table: sales
+column: promo_code
+type: string
+nullable: true
+description: Add optional promo code column for campaign tracking

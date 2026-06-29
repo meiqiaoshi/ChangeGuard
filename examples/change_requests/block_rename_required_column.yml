@@ -1,0 +1,5 @@
+change_type: rename_column
+table: sales
+column: amount
+new_name: order_amount
+description: Rename required downstream column amount to order_amount

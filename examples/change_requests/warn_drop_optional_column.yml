@@ -1,0 +1,4 @@
+change_type: drop_column
+table: sales
+column: status
+description: Drop optional status column with no known downstream usage
