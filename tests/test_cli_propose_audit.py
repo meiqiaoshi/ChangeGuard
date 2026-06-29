@@ -33,7 +33,8 @@ def test_propose_command_saves_audit_log_and_prints_path(tmp_path: Path, monkeyp
     )
 
     assert result.exit_code == 0
-    assert "Audit log: .changeguard/runs/000001.json" in result.stdout
+    assert "Audit Log" in result.stdout
+    assert ".changeguard/runs/000001.json" in result.stdout
 
     audit_file = runs_path(project) / "000001.json"
     assert audit_file.is_file()
@@ -65,7 +66,9 @@ def test_propose_command_assigns_incremental_audit_logs(tmp_path: Path, monkeypa
 
     assert first.exit_code == 0
     assert second.exit_code == 0
-    assert "Audit log: .changeguard/runs/000001.json" in first.stdout
-    assert "Audit log: .changeguard/runs/000002.json" in second.stdout
+    assert "Audit Log" in first.stdout
+    assert ".changeguard/runs/000001.json" in first.stdout
+    assert "Audit Log" in second.stdout
+    assert ".changeguard/runs/000002.json" in second.stdout
     assert (runs_path(project) / "000001.json").is_file()
     assert (runs_path(project) / "000002.json").is_file()

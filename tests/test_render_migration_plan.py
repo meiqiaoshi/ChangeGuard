@@ -36,7 +36,7 @@ def test_render_migration_plan_lists_numbered_steps() -> None:
     output = render_migration_plan(plan)
 
     assert output == (
-        "Recommended Migration Plan:\n"
+        "Migration Plan\n"
         "1. Add new column as nullable\n"
         "2. Backfill new column from old column"
     )
@@ -60,7 +60,7 @@ def test_render_review_result_includes_migration_plan() -> None:
 
     output = render_review_result(result)
 
-    assert "Recommended Migration Plan:" in output
+    assert "Migration Plan" in output
     assert "1. Add new column as nullable" in output
     assert "6. Deprecate old column after compatibility window" in output
 
@@ -87,8 +87,8 @@ def test_propose_blocked_rename_includes_migration_plan_in_cli_output(
     )
 
     assert result.exit_code == 0
-    assert "Decision: BLOCK" in result.stdout
-    assert "Recommended Migration Plan:" in result.stdout
+    assert "Decision\nBLOCK" in result.stdout
+    assert "Migration Plan" in result.stdout
     assert "1. Add new column as nullable" in result.stdout
     assert "3. Update downstream assets" in result.stdout
 

@@ -59,12 +59,13 @@ def test_phase6_end_to_end_blocked_rename_includes_migration_and_rollback(
         ["propose", "--file", str(EXAMPLES_DIR / "change_requests" / "rename_amount_column.yml")],
     )
     assert propose_result.exit_code == 0
-    assert "Decision: BLOCK" in propose_result.stdout
-    assert propose_result.stdout.split("Risk Level: ", 1)[1].splitlines()[0] in {"HIGH", "CRITICAL"}
-    assert "Recommended Migration Plan:" in propose_result.stdout
+    assert "Decision\nBLOCK" in propose_result.stdout
+    assert "Risk Level\n" in propose_result.stdout
+    assert any(level in propose_result.stdout for level in ("Risk Level\nHIGH", "Risk Level\nCRITICAL"))
+    assert "Migration Plan" in propose_result.stdout
     assert "1. Add new column as nullable" in propose_result.stdout
-    assert "Rollback Notes:" in propose_result.stdout
+    assert "Rollback Notes" in propose_result.stdout
     assert "Do not delete old data files" in propose_result.stdout
-    assert "Impacted Assets:" in propose_result.stdout
+    assert "Impacted Assets" in propose_result.stdout
     assert "mart_daily_revenue.total_amount" in propose_result.stdout
     assert "sales_dashboard.revenue_kpi" in propose_result.stdout

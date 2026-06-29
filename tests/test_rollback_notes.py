@@ -75,7 +75,7 @@ def test_render_review_result_includes_rollback_notes_for_risky_change(tmp_path:
     output = render_review_result(result)
 
     assert result.decision.value == "WARN"
-    assert "Rollback Notes:" in output
+    assert "Rollback Notes" in output
     assert "- Keep old column until downstream validation passes" in output
     assert "- Restore previous contract version if checks fail" in output
 
@@ -100,5 +100,5 @@ def test_propose_blocked_rename_includes_rollback_notes(tmp_path: Path, monkeypa
     )
 
     assert cli_result.exit_code == 0
-    assert "Rollback Notes:" in cli_result.stdout
+    assert "Rollback Notes" in cli_result.stdout
     assert "Do not delete old data files" in cli_result.stdout

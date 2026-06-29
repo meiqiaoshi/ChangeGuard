@@ -46,8 +46,9 @@ def test_phase7_end_to_end_audit_log_workflow(tmp_path: Path, monkeypatch) -> No
         ["propose", "--file", str(EXAMPLES_DIR / "change_requests" / "rename_amount_column.yml")],
     )
     assert propose_result.exit_code == 0
-    assert "Decision: BLOCK" in propose_result.stdout
-    assert "Audit log: .changeguard/runs/000001.json" in propose_result.stdout
+    assert "Decision\nBLOCK" in propose_result.stdout
+    assert "Audit Log" in propose_result.stdout
+    assert ".changeguard/runs/000001.json" in propose_result.stdout
 
     audit_file = runs_path(project) / "000001.json"
     assert audit_file.is_file()
@@ -74,7 +75,7 @@ def test_phase7_end_to_end_audit_log_workflow(tmp_path: Path, monkeypatch) -> No
 
     review_result = runner.invoke(app, ["review-run", "000001"])
     assert review_result.exit_code == 0
-    assert "Decision: BLOCK" in review_result.stdout
-    assert "Recommended Migration Plan:" in review_result.stdout
-    assert "Rollback Notes:" in review_result.stdout
+    assert "Decision\nBLOCK" in review_result.stdout
+    assert "Migration Plan" in review_result.stdout
+    assert "Rollback Notes" in review_result.stdout
     assert "mart_daily_revenue.total_amount" in review_result.stdout

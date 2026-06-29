@@ -47,8 +47,8 @@ def test_phase5_end_to_end_decision_engine(tmp_path: Path, monkeypatch) -> None:
         ["propose", "--file", str(EXAMPLES_DIR / "change_requests" / "add_discount_column.yml")],
     )
     assert add_result.exit_code == 0
-    assert "Decision: ALLOW" in add_result.stdout
-    assert "Risk Level: LOW" in add_result.stdout
+    assert "Decision\nALLOW" in add_result.stdout
+    assert "Risk Level\nLOW" in add_result.stdout
     assert "(contract)" in add_result.stdout
 
     rename_result = runner.invoke(
@@ -56,9 +56,9 @@ def test_phase5_end_to_end_decision_engine(tmp_path: Path, monkeypatch) -> None:
         ["propose", "--file", str(EXAMPLES_DIR / "change_requests" / "rename_amount_column.yml")],
     )
     assert rename_result.exit_code == 0
-    assert "Decision: BLOCK" in rename_result.stdout
-    assert "Risk Level:" in rename_result.stdout
-    assert rename_result.stdout.split("Risk Level: ", 1)[1].splitlines()[0] in {"HIGH", "CRITICAL"}
+    assert "Decision\nBLOCK" in rename_result.stdout
+    assert "Risk Level\n" in rename_result.stdout
+    assert any(level in rename_result.stdout for level in ("Risk Level\nHIGH", "Risk Level\nCRITICAL"))
     assert "(contract)" in rename_result.stdout
     assert "(lineage)" in rename_result.stdout
     assert "mart_daily_revenue.total_amount" in rename_result.stdout
@@ -76,8 +76,8 @@ def test_phase5_end_to_end_decision_engine(tmp_path: Path, monkeypatch) -> None:
         ],
     )
     assert drop_result.exit_code == 0
-    assert "Decision: WARN" in drop_result.stdout
-    assert "Risk Level: MEDIUM" in drop_result.stdout
+    assert "Decision\nWARN" in drop_result.stdout
+    assert "Risk Level\nMEDIUM" in drop_result.stdout
     assert "contract_drop_optional_column" not in drop_result.stdout
     assert "optional" in drop_result.stdout.lower() or "reviewed before dropping" in drop_result.stdout
     assert "no known downstream dependencies" in drop_result.stdout

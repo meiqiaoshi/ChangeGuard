@@ -34,10 +34,10 @@ def test_review_run_command_renders_saved_decision(tmp_path: Path, monkeypatch) 
     review_result = runner.invoke(app, ["review-run", "000001"])
 
     assert review_result.exit_code == 0
-    assert "Decision: BLOCK" in review_result.stdout
-    assert "Risk Level:" in review_result.stdout
-    assert "Recommended Migration Plan:" in review_result.stdout
-    assert "Rollback Notes:" in review_result.stdout
+    assert "Decision\nBLOCK" in review_result.stdout
+    assert "Risk Level" in review_result.stdout
+    assert "Migration Plan" in review_result.stdout
+    assert "Rollback Notes" in review_result.stdout
     assert "mart_daily_revenue.total_amount" in review_result.stdout
 
 
@@ -56,7 +56,7 @@ def test_review_run_command_accepts_unpadded_run_id(tmp_path: Path, monkeypatch)
     result = runner.invoke(app, ["review-run", "1"])
 
     assert result.exit_code == 0
-    assert "Decision: ALLOW" in result.stdout
+    assert "Decision\nALLOW" in result.stdout
 
 
 def test_review_run_command_reports_missing_run(tmp_path: Path, monkeypatch) -> None:

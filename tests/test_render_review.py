@@ -37,18 +37,21 @@ def test_render_review_result_block_with_checks_and_impacts() -> None:
     output = render_review_result(result)
 
     assert output == (
-        "Decision: BLOCK\n"
-        "Risk Level: HIGH\n"
+        "Decision\n"
+        "BLOCK\n"
         "\n"
-        "Checks:\n"
+        "Risk Level\n"
+        "HIGH\n"
+        "\n"
+        "Checks\n"
         "- [FAIL] (contract) Column amount is required by contract for table sales\n"
         "- [FAIL] (lineage) Column amount is referenced by downstream assets: mart_daily_revenue.total_amount\n"
         "\n"
-        "Impacted Assets:\n"
+        "Impacted Assets\n"
         "- mart_daily_revenue.total_amount\n"
         "- sales_dashboard.revenue_kpi\n"
         "\n"
-        "Reasons:\n"
+        "Reasons\n"
         "- Column amount is required by contract for table sales\n"
         "- Column amount is referenced by downstream assets: mart_daily_revenue.total_amount"
     )
@@ -69,7 +72,7 @@ def test_render_review_result_allow_with_no_reasons() -> None:
 
     output = render_review_result(result)
 
-    assert "Decision: ALLOW" in output
-    assert "Risk Level: LOW" in output
-    assert "Reasons:\n- (none)" in output
-    assert "Impacted Assets:\n- (none)" in output
+    assert "Decision\nALLOW" in output
+    assert "Risk Level\nLOW" in output
+    assert "Reasons\n(none)" in output
+    assert "Impacted Assets\n(none)" in output

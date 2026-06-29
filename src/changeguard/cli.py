@@ -311,9 +311,8 @@ def propose_cmd(
 
     review = review_change(Path.cwd(), request)
     run_file = save_review_run(Path.cwd(), review, change_request=request)
-    output = render_propose_output(request, review)
     audit_reference = format_audit_log_path(run_file, Path.cwd())
-    typer.echo(f"{output}\n\nAudit log: {audit_reference}")
+    typer.echo(render_propose_output(request, review, audit_log_path=audit_reference))
 
 
 @app.command("runs")

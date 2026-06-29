@@ -36,15 +36,15 @@ def test_propose_rename_runs_full_review_and_blocks(tmp_path: Path, monkeypatch)
 
     assert result.exit_code == 0
     assert "change_type: rename_column" in result.stdout
-    assert "Decision: BLOCK" in result.stdout
-    assert "Risk Level:" in result.stdout
-    assert result.stdout.split("Risk Level: ", 1)[1].splitlines()[0] in {"HIGH", "CRITICAL"}
-    assert "Checks:" in result.stdout
+    assert "Decision\nBLOCK" in result.stdout
+    assert "Risk Level\n" in result.stdout
+    assert any(level in result.stdout for level in ("Risk Level\nHIGH", "Risk Level\nCRITICAL"))
+    assert "Checks" in result.stdout
     assert "(contract)" in result.stdout
     assert "(lineage)" in result.stdout
-    assert "Impacted Assets:" in result.stdout
+    assert "Impacted Assets" in result.stdout
     assert "mart_daily_revenue.total_amount" in result.stdout
-    assert "Reasons:" in result.stdout
+    assert "Reasons" in result.stdout
 
 
 def test_propose_add_nullable_column_runs_full_review_and_allows(
@@ -69,6 +69,6 @@ def test_propose_add_nullable_column_runs_full_review_and_allows(
 
     assert result.exit_code == 0
     assert "change_type: add_column" in result.stdout
-    assert "Decision: ALLOW" in result.stdout
-    assert "Risk Level: LOW" in result.stdout
+    assert "Decision\nALLOW" in result.stdout
+    assert "Risk Level\nLOW" in result.stdout
     assert "(contract)" in result.stdout

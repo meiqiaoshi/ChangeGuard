@@ -1,5 +1,6 @@
 """CLI-friendly review result rendering."""
 
+from changeguard.audit import ReviewRunSummary
 from changeguard.lineage import ColumnImpact
 from changeguard.models import (
     AssetRef,
@@ -11,7 +12,12 @@ from changeguard.models import (
     ReviewResult,
     TableMetadata,
 )
-from changeguard.audit import ReviewRunSummary
+
+
+def _render_section(title: str, body_lines: list[str]) -> str:
+    if not body_lines:
+        body_lines = ["(none)"]
+    return "\n".join([title, *body_lines])
 
 
 def render_table_list(tables: list[TableMetadata]) -> str:
@@ -76,7 +82,7 @@ def render_change_request(request: ChangeRequest) -> str:
     if request.requested_by is not None:
         lines.append(f"requested_by: {request.requested_by}")
 
-    return "\n".join(lines)
+    return _render_section("Change Request", lines)
 
 
 def render_contract_summary(contract: Contract) -> str:
@@ -140,61 +146,65 @@ def render_lineage_check_results(results: list[CheckResult]) -> str:
 
 def render_migration_plan(plan: MigrationPlan) -> str:
     """Render a recommended migration plan for CLI output."""
-    lines = ["Recommended Migration Plan:"]
-    for step in plan.steps:
-        lines.append(f"{step.step_number}. {step.title}")
-    return "\n".join(lines)
+    lines = [f"{step.step_number}. {step.title}" for step in plan.steps]
+    return _render_section("Migration Plan", lines)
 
 
 def render_rollback_notes(notes: list[str]) -> str:
     """Render rollback guidance for CLI output."""
-    lines = ["Rollback Notes:"]
-    if notes:
-        for note in notes:
-            lines.append(f"- {note}")
-    else:
-        lines.append("- (none)")
-    return "\n".join(lines)
+    lines = [f"- {note}" for note in notes] if notes else []
+    return _render_section("Rollback Notes", lines)
 
 
-def render_propose_output(request: ChangeRequest, review: ReviewResult) -> str:
-    """Render a proposed change with its full review result."""
-    return "\n".join([render_change_request(request), "", render_review_result(review)])
+def render_audit_log(audit_log_path: str) -> str:
+    """Render the saved audit log path for CLI output."""
+    return _render_section("Audit Log", [audit_log_path])
 
 
 def render_review_result(result: ReviewResult) -> str:
     """Render a structured change review result for CLI output."""
-    lines = [
-        f"Decision: {result.decision.value}",
-        f"Risk Level: {result.risk_level.value}",
-        "",
-        "Checks:",
+    if result.check_results:
+        check_lines = [
+            f"- [{check.status.value}] ({check.source}) {check.message}"
+            for check in result.check_results
+        ]
+    else:
+        check_lines = []
+
+    if result.impacted_assets:
+        impacted_lines = [f"- {asset}" for asset in result.impacted_assets]
+    else:
+        impacted_lines = []
+
+    if result.reasons:
+        reason_lines = [f"- {reason}" for reason in result.reasons]
+    else:
+        reason_lines = []
+
+    sections = [
+        _render_section("Decision", [result.decision.value]),
+        _render_section("Risk Level", [result.risk_level.value]),
+        _render_section("Checks", check_lines),
+        _render_section("Impacted Assets", impacted_lines),
+        _render_section("Reasons", reason_lines),
     ]
 
-    if result.check_results:
-        for check in result.check_results:
-            lines.append(f"- [{check.status.value}] ({check.source}) {check.message}")
-    else:
-        lines.append("- (none)")
-
-    lines.extend(["", "Impacted Assets:"])
-    if result.impacted_assets:
-        for asset in result.impacted_assets:
-            lines.append(f"- {asset}")
-    else:
-        lines.append("- (none)")
-
-    lines.extend(["", "Reasons:"])
-    if result.reasons:
-        for reason in result.reasons:
-            lines.append(f"- {reason}")
-    else:
-        lines.append("- (none)")
-
     if result.migration_plan and result.migration_plan.steps:
-        lines.extend(["", render_migration_plan(result.migration_plan)])
+        sections.append(render_migration_plan(result.migration_plan))
 
     if result.rollback_notes:
-        lines.extend(["", render_rollback_notes(result.rollback_notes)])
+        sections.append(render_rollback_notes(result.rollback_notes))
 
-    return "\n".join(lines)
+    return "\n\n".join(sections)
+
+
+def render_propose_output(
+    request: ChangeRequest,
+    review: ReviewResult,
+    audit_log_path: str | None = None,
+) -> str:
+    """Render a proposed change with its full review result."""
+    sections = [render_change_request(request), render_review_result(review)]
+    if audit_log_path is not None:
+        sections.append(render_audit_log(audit_log_path))
+    return "\n\n".join(sections)

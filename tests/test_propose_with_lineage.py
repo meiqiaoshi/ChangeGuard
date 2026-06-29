@@ -36,11 +36,11 @@ def test_propose_rename_includes_impacted_assets_and_lineage_block(tmp_path: Pat
 
     assert result.exit_code == 0
     assert "change_type: rename_column" in result.stdout
-    assert "Decision: BLOCK" in result.stdout
-    assert "Impacted Assets:" in result.stdout
+    assert "Decision\nBLOCK" in result.stdout
+    assert "Impacted Assets" in result.stdout
     assert "mart_daily_revenue.total_amount" in result.stdout
     assert "sales_dashboard.revenue_kpi" in result.stdout
-    assert "Checks:" in result.stdout
+    assert "Checks" in result.stdout
     assert "(lineage)" in result.stdout
     assert "[FAIL]" in result.stdout
 
@@ -66,7 +66,7 @@ def test_propose_drop_includes_impacted_assets_and_lineage_block(tmp_path: Path,
     )
 
     assert result.exit_code == 0
-    assert "Impacted Assets:" in result.stdout
+    assert "Impacted Assets" in result.stdout
     assert "customer_orders_summary" in result.stdout
     assert "(lineage)" in result.stdout
     assert "[FAIL]" in result.stdout
@@ -92,5 +92,5 @@ def test_propose_rename_without_lineage_still_prints_change_request(tmp_path: Pa
 
     assert result.exit_code == 0
     assert "change_type: rename_column" in result.stdout
-    assert "Decision: BLOCK" in result.stdout
+    assert "Decision\nBLOCK" in result.stdout
     assert "(lineage)" not in result.stdout
