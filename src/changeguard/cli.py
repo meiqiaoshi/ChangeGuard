@@ -18,6 +18,7 @@ from changeguard.changes import (
     load_change_request,
 )
 from changeguard.contracts import load_contract
+from changeguard.explain import explain_review
 from changeguard.lineage import find_column_impact, find_downstream, load_lineage
 from changeguard.models import AssetRef, AssetType, ChangeType
 from changeguard.planner import review_change
@@ -345,6 +346,26 @@ def review_run_cmd(
         raise typer.Exit(code=1) from exc
 
     typer.echo(render_review_result(review))
+
+
+@app.command("explain-run")
+def explain_run_cmd(
+    run_id: str = typer.Argument(..., help="Saved review run ID."),
+    path: Path | None = typer.Option(
+        None,
+        "--path",
+        help="Base directory for the ChangeGuard workspace.",
+    ),
+) -> None:
+    """Explain a saved review run in plain language."""
+    base = path or Path.cwd()
+    try:
+        review = load_run(base, run_id)
+    except ReviewRunNotFoundError as exc:
+        typer.secho(str(exc), fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1) from exc
+
+    typer.echo(explain_review(review))
 
 
 if __name__ == "__main__":
