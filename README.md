@@ -194,16 +194,37 @@ No API key is required for tests or local demos. See [docs/ai_boundary.md](docs/
 
 ## Project Architecture
 
+ChangeGuard is organized as a small set of deterministic components:
+
+| Component | Role | Module |
+|-----------|------|--------|
+| Change request parser | Load YAML or CLI flags into structured proposals | `changes.py` |
+| Metadata registry | Index tables and point to schema, contract, and lineage files | `registry.py`, `workspace.py` |
+| Contract checker | Validate proposals against data contract rules | `contracts.py` |
+| Lineage impact analyzer | Find downstream assets affected by column or table changes | `lineage.py` |
+| Decision engine | Aggregate checks into `ALLOW` / `WARN` / `BLOCK` and risk level | `rules.py` |
+| Migration planner | Generate safe rollout steps for risky changes | `planner.py` |
+| Audit logger | Persist review runs under `.changeguard/runs/` | `audit.py` |
+| Optional explanation layer | Summarize saved reviews in plain language | `explain.py`, `llm.py` |
+
+End-to-end review flow:
+
 ```text
 Change Request
       ↓
-Metadata Loader (registry, contracts, lineage)
+Change request parser
       ↓
-Contract Checks + Lineage Checks + Rule Engine
+Metadata registry
       ↓
-Decision + Migration Plan + Audit Log
+Contract checker + Lineage impact analyzer
       ↓
-Optional Explanation Layer
+Decision engine
+      ↓
+Migration planner
+      ↓
+Audit logger
+      ↓
+Optional explanation layer
 ```
 
 Workspace layout:
