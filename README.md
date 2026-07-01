@@ -207,7 +207,7 @@ Full design: [docs/system_design.md](docs/system_design.md)
 | 0–7 | Core review pipeline, migration plans, audit logs | Done |
 | 8 | CLI polish and example workflows | Done |
 | 9 | Optional AI explanation layer | Done |
-| 10 | Portfolio packaging | In progress |
+| 10 | Portfolio packaging | Done |
 
 ## Limitations
 
@@ -231,6 +231,7 @@ See [docs/limitations.md](docs/limitations.md) and [docs/troubleshooting.md](doc
 | [decision_rules.md](docs/decision_rules.md) | ALLOW / WARN / BLOCK rules |
 | [limitations.md](docs/limitations.md) | MVP boundaries |
 | [troubleshooting.md](docs/troubleshooting.md) | Common issues |
+| [project_completion_note.md](docs/project_completion_note.md) | Final project summary |
 
 ## License
 
