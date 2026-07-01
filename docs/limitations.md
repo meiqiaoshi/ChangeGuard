@@ -64,3 +64,4 @@ Implications:
 - [System design](system_design.md)
 - [Decision rules](decision_rules.md)
 - [Troubleshooting](troubleshooting.md)
+- [AI explanation boundary](ai_boundary.md)

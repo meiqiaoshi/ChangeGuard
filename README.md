@@ -152,6 +152,27 @@ run_id  decision  risk_level  change_type     target           created_at
 
 Each audit JSON file stores the decision, checks, migration plan, rollback notes, and change metadata for later inspection.
 
+## Optional AI Explanation
+
+ChangeGuard can explain a saved review in plain language:
+
+```bash
+changeguard explain-run 000001
+```
+
+Example output:
+
+```text
+This change received a BLOCK decision with CRITICAL risk.
+The proposed change failed one or more safety checks and should not be applied as requested.
+
+Key concerns:
+- Column amount is required by contract for table sales
+- Column amount is referenced by downstream assets: mart_daily_revenue.total_amount
+```
+
+The explanation layer is optional and does **not** change the review decision. Rules decide. AI explains. See [docs/ai_boundary.md](docs/ai_boundary.md).
+
 ## Project Architecture
 
 ```text
@@ -198,6 +219,9 @@ ChangeGuard fills the **pre-change safety review** gap in a local data platform 
 | Purpose | Helps users understand data and ask metadata/query questions | Reviews proposed changes and decides whether they are safe |
 | Decision model | Conversational assistance | Deterministic rule engine |
 | Output | Natural language answers | `ALLOW` / `WARN` / `BLOCK` with risk level, reasons, and migration plan |
+| AI role | Core interaction model | Optional explanation of deterministic results only |
+
+See [docs/ai_boundary.md](docs/ai_boundary.md) for the safety boundary.
 
 ## Non-Goals
 
@@ -209,7 +233,7 @@ The initial version intentionally avoids:
 - Authentication
 - Complex SQL parser or full dbt replacement
 - Real-time streaming integration
-- LLM required for MVP
+- LLM required for core review workflow
 
 ChangeGuard stays a clean, local-first, inspectable CLI tool.
 
@@ -225,8 +249,8 @@ ChangeGuard stays a clean, local-first, inspectable CLI tool.
 | 5 | Decision engine (`ALLOW` / `WARN` / `BLOCK`) | Done |
 | 6 | Migration plan generator | Done |
 | 7 | Audit log and run review | Done |
-| 8 | CLI polish and example workflows | In progress |
-| 9 | Optional AI explanation layer | Planned |
+| 8 | CLI polish and example workflows | Done |
+| 9 | Optional AI explanation layer | In progress |
 | 10 | Portfolio packaging | Planned |
 
 ## License
