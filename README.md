@@ -154,9 +154,17 @@ Each audit JSON file stores the decision, checks, migration plan, rollback notes
 
 ## Optional AI Explanation
 
-ChangeGuard can explain a saved review in plain language:
+ChangeGuard includes an optional explanation layer for saved review runs. The rule engine still makes every safety decision. The explanation layer only summarizes the result in plain language.
 
 ```bash
+changeguard explain-run 000001
+```
+
+Typical workflow:
+
+```bash
+changeguard propose --file examples/change_requests/block_rename_required_column.yml
+changeguard review-run 000001
 changeguard explain-run 000001
 ```
 
@@ -169,9 +177,20 @@ The proposed change failed one or more safety checks and should not be applied a
 Key concerns:
 - Column amount is required by contract for table sales
 - Column amount is referenced by downstream assets: mart_daily_revenue.total_amount
+
+Recommended migration approach:
+1. Add new column as nullable
+2. Backfill new column from old column
 ```
 
-The explanation layer is optional and does **not** change the review decision. Rules decide. AI explains. See [docs/ai_boundary.md](docs/ai_boundary.md).
+Adapter options in `src/changeguard/llm.py`:
+
+| Client | Behavior |
+|--------|----------|
+| `NoOpLLMClient` | Deterministic template explanation (default-compatible) |
+| `OpenAICompatibleClient` | Placeholder for future OpenAI-compatible APIs; falls back to deterministic text in the MVP |
+
+No API key is required for tests or local demos. See [docs/ai_boundary.md](docs/ai_boundary.md) for the safety boundary.
 
 ## Project Architecture
 
@@ -183,6 +202,8 @@ Metadata Loader (registry, contracts, lineage)
 Contract Checks + Lineage Checks + Rule Engine
       ↓
 Decision + Migration Plan + Audit Log
+      ↓
+Optional Explanation Layer
 ```
 
 Workspace layout:
@@ -250,7 +271,7 @@ ChangeGuard stays a clean, local-first, inspectable CLI tool.
 | 6 | Migration plan generator | Done |
 | 7 | Audit log and run review | Done |
 | 8 | CLI polish and example workflows | Done |
-| 9 | Optional AI explanation layer | In progress |
+| 9 | Optional AI explanation layer | Done |
 | 10 | Portfolio packaging | Planned |
 
 ## License
